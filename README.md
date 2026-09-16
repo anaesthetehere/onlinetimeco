@@ -1,4 +1,4 @@
-An AI-Powered Productivity, Time Management & Enterprise Operations Platform
+A Productivity, Time Management & Enterprise Operations Platform
 
 A production-grade, highly scalable, aesthetic, intelligent productivity and enterprise operations platform that combines:
 
