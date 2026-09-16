@@ -13,10 +13,13 @@ import {
   Layers,
   Building2,
   User,
-  GitBranch
+  GitBranch,
+  UserPlus,
+  FolderPlus
 } from 'lucide-react';
 import { Task, Project, Department, TeamMember, Priority, EisenhowerQuadrant, TaskStatus } from '../types';
 import { aiBreakdownTask } from '../services/aiScheduler';
+import { generateSecureAccessKey } from '../services/accessKeyService';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -27,6 +30,10 @@ interface TaskModalProps {
   departments: Department[];
   teamMembers: TeamMember[];
   allTasks: Task[];
+  customCategories?: string[];
+  onAddCustomCategory?: (category: string) => void;
+  onAddTeamMember?: (member: TeamMember) => void;
+  onAddDepartment?: (dept: Department) => void;
 }
 
 export const TaskModal: React.FC<TaskModalProps> = ({
@@ -37,7 +44,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   projects,
   departments,
   teamMembers,
-  allTasks
+  allTasks,
+  customCategories = [],
+  onAddCustomCategory,
+  onAddTeamMember,
+  onAddDepartment
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -57,6 +68,18 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [dependencies, setDependencies] = useState<string[]>([]);
   const [isAiBreakingDown, setIsAiBreakingDown] = useState(false);
   const [aiNote, setAiNote] = useState('');
+
+  // Inline forms for adding custom person, department, category
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState('');
+
+  const [isAddingDept, setIsAddingDept] = useState(false);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [newDeptCode, setNewDeptCode] = useState('');
+
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
     if (initialTask) {
@@ -314,34 +337,156 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </select>
             </div>
 
-            {/* Department */}
+            {/* Department with + Custom Dept */}
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 mb-1">Department</label>
-              <select
-                value={departmentId}
-                onChange={(e) => setDepartmentId(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-              >
-                <option value="">No Department</option>
-                {departments.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-600 dark:text-slate-400">Department</label>
+                {onAddDepartment && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingDept(!isAddingDept)}
+                    className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+                  >
+                    <FolderPlus className="w-2.5 h-2.5" />
+                    <span>{isAddingDept ? 'Cancel' : '+ New Dept'}</span>
+                  </button>
+                )}
+              </div>
+
+              {isAddingDept ? (
+                <div className="p-2 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 space-y-1.5 mb-1.5">
+                  <input
+                    type="text"
+                    placeholder="Dept Name (e.g. AI Research)"
+                    value={newDeptName}
+                    onChange={(e) => setNewDeptName(e.target.value)}
+                    className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Code (e.g. AIR)"
+                      value={newDeptCode}
+                      onChange={(e) => setNewDeptCode(e.target.value)}
+                      className="w-20 px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white uppercase font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newDeptName.trim()) return;
+                        const code = (newDeptCode.trim() || newDeptName.substring(0, 3)).toUpperCase();
+                        const newDept: Department = {
+                          id: `dept-${Date.now()}`,
+                          name: newDeptName.trim(),
+                          code,
+                          leadName: 'Self',
+                          color: '#6366f1',
+                          headcount: 1,
+                          quarterlyBudget: 50000,
+                          quarterlySpent: 0,
+                          activeProjectsCount: 1,
+                          okrs: []
+                        };
+                        onAddDepartment(newDept);
+                        setDepartmentId(newDept.id);
+                        setNewDeptName('');
+                        setNewDeptCode('');
+                        setIsAddingDept(false);
+                      }}
+                      className="flex-1 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium"
+                    >
+                      Save Dept
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  value={departmentId}
+                  onChange={(e) => setDepartmentId(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">No Department</option>
+                  {departments.map(d => (
+                    <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+                  ))}
+                </select>
+              )}
             </div>
 
-            {/* Assignee */}
+            {/* Assignee with + Add Employee by Name */}
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 mb-1">Assignee</label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
-              >
-                <option value="">Unassigned</option>
-                {teamMembers.map(m => (
-                  <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-600 dark:text-slate-400">Assignee / Employee</label>
+                {onAddTeamMember && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingMember(!isAddingMember)}
+                    className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+                  >
+                    <UserPlus className="w-2.5 h-2.5" />
+                    <span>{isAddingMember ? 'Cancel' : '+ Add Person'}</span>
+                  </button>
+                )}
+              </div>
+
+              {isAddingMember ? (
+                <div className="p-2 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 space-y-1.5 mb-1.5">
+                  <input
+                    type="text"
+                    placeholder="Person's Full Name (e.g. Maya Lin)"
+                    value={newMemberName}
+                    onChange={(e) => setNewMemberName(e.target.value)}
+                    className="w-full px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Role (e.g. Lead Designer)"
+                      value={newMemberRole}
+                      onChange={(e) => setNewMemberRole(e.target.value)}
+                      className="flex-1 px-2 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!newMemberName.trim()) return;
+                        const newKey = generateSecureAccessKey('ROOM', newMemberName);
+                        const newMember: TeamMember = {
+                          id: `member-${Date.now()}`,
+                          name: newMemberName.trim(),
+                          role: newMemberRole.trim() || 'Contributor',
+                          email: `${newMemberName.trim().toLowerCase().replace(/\s+/g, '.')}@acme-corp.internal`,
+                          departmentId: departmentId || departments[0]?.id || 'dept-eng',
+                          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+                          capacityHoursPerWeek: 40,
+                          currentWorkloadHours: 0,
+                          isOnline: true,
+                          accessKey: newKey
+                        };
+                        onAddTeamMember(newMember);
+                        setAssignedTo(newMember.id);
+                        setNewMemberName('');
+                        setNewMemberRole('');
+                        setIsAddingMember(false);
+                      }}
+                      className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium"
+                    >
+                      Allot & Grant
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Unassigned</option>
+                  {teamMembers.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Estimated Minutes */}
@@ -453,9 +598,96 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
 
-          {/* Tags Section */}
+          {/* Categories & Subcategories Section */}
           <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80">
-            <label className="block text-slate-600 dark:text-slate-400 mb-1">Tags</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-slate-600 dark:text-slate-400 flex items-center gap-1.5 font-medium">
+                <Tag className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                <span>Category / Subcategory</span>
+              </label>
+              {onAddCustomCategory && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddingCategory(!isAddingCategory)}
+                  className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
+                >
+                  <Plus className="w-2.5 h-2.5" />
+                  <span>{isAddingCategory ? 'Cancel' : '+ Add Category'}</span>
+                </button>
+              )}
+            </div>
+
+            {/* Custom Category Inline Adder */}
+            {isAddingCategory && (
+              <div className="p-2 mb-2 rounded-lg bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter new category name..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (newCategoryName.trim()) {
+                        onAddCustomCategory?.(newCategoryName.trim());
+                        if (!tags.includes(newCategoryName.trim())) {
+                          setTags([...tags, newCategoryName.trim()]);
+                        }
+                        setNewCategoryName('');
+                        setIsAddingCategory(false);
+                      }
+                    }
+                  }}
+                  className="flex-1 px-2.5 py-1 text-xs rounded bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (newCategoryName.trim()) {
+                      onAddCustomCategory?.(newCategoryName.trim());
+                      if (!tags.includes(newCategoryName.trim())) {
+                        setTags([...tags, newCategoryName.trim()]);
+                      }
+                      setNewCategoryName('');
+                      setIsAddingCategory(false);
+                    }
+                  }}
+                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-medium"
+                >
+                  Save Category
+                </button>
+              </div>
+            )}
+
+            {/* Category Quick Chips */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {['Deep Work', 'Architecture', 'Meeting', 'Review', 'Bugfix', 'Operations', ...customCategories].map(cat => {
+                const isSelected = tags.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setTags(tags.filter(t => t !== cat));
+                      } else {
+                        setTags([...tags, cat]);
+                      }
+                    }}
+                    className={`px-2 py-0.5 rounded-md text-[11px] font-medium border transition-colors ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    {isSelected ? '✓ ' : '+ '}{cat}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom Freeform Tags Section */}
+            <label className="block text-slate-600 dark:text-slate-400 mb-1 text-[11px]">Specific Task Tags</label>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {tags.map(t => (
                 <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 border border-slate-200 dark:border-slate-700 text-[11px]">
@@ -472,7 +704,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(); } }}
-                placeholder="Type tag name and press Enter..."
+                placeholder="Type additional tag name and press Enter..."
                 className="flex-1 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-slate-200 text-xs placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
               />
               <button

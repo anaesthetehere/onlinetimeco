@@ -88,7 +88,10 @@ export interface TeamMember {
   capacityHoursPerWeek: number;
   currentWorkloadHours: number;
   isOnline: boolean;
+  accessKey?: string;
 }
+
+export type TimeBlockCategory = 'deep_work' | 'meeting' | 'review' | 'admin' | 'break' | string;
 
 export interface TimeBlock {
   id: string;
@@ -97,7 +100,7 @@ export interface TimeBlock {
   date: string; // YYYY-MM-DD
   startTime: string; // HH:mm
   endTime: string; // HH:mm
-  category: 'deep_work' | 'meeting' | 'review' | 'admin' | 'break';
+  category: TimeBlockCategory;
   color: string;
   isAiScheduled?: boolean;
   notes?: string;
@@ -130,7 +133,7 @@ export interface RiskItem {
 export interface Habit {
   id: string;
   title: string;
-  category: 'deep_work' | 'health' | 'learning' | 'mindset';
+  category: 'deep_work' | 'health' | 'learning' | 'mindset' | string;
   frequency: 'daily' | 'weekdays';
   streak: number;
   completedDates: string[]; // YYYY-MM-DD
@@ -149,12 +152,23 @@ export interface AuditLog {
   id: string;
   timestamp: string;
   action: string;
-  entityType: 'task' | 'project' | 'schedule' | 'focus' | 'risk';
+  entityType: 'task' | 'project' | 'schedule' | 'focus' | 'risk' | 'access' | 'team';
   details: string;
   userId?: string;
 }
 
 export type WorkspaceMode = 'enterprise' | 'startup' | 'personal';
+
+export interface RoomAccessKey {
+  id: string;
+  roomName: string;
+  departmentId?: string;
+  accessKey: string;
+  role: 'admin' | 'editor' | 'viewer';
+  createdForName?: string;
+  createdAt: string;
+  isRevoked?: boolean;
+}
 
 export interface AppState {
   tasks: Task[];
@@ -168,6 +182,10 @@ export interface AppState {
   reflections: DailyReflection[];
   auditLogs: AuditLog[];
   workspaceMode: WorkspaceMode;
+  roomAccessKeys?: RoomAccessKey[];
+  activeAccessKey?: string;
+  unlockedRoomIds?: string[];
+  customCategories?: string[];
   userProfile: {
     name: string;
     role: string;
@@ -176,5 +194,6 @@ export interface AppState {
     pomodoroLength: number; // 25
     shortBreakLength: number; // 5
     longBreakLength: number; // 15
+    customAttentionSpanMinutes?: number;
   };
 }

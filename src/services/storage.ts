@@ -1,4 +1,5 @@
 import { AppState, Department, Project, Task, TeamMember, TimeBlock, Habit, RiskItem, FocusSession } from '../types';
+import { getInitialRoomKeys } from './accessKeyService';
 
 const DB_NAME = 'time_co_db';
 const DB_VERSION = 1;
@@ -127,7 +128,8 @@ export const getInitialData = (): AppState => {
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       capacityHoursPerWeek: 40,
       currentWorkloadHours: 34,
-      isOnline: true
+      isOnline: true,
+      accessKey: 'TIME-ROOM-ProdHub-7w3n8r1x-4f5e-P8L2'
     },
     {
       id: 'tm-2',
@@ -138,7 +140,8 @@ export const getInitialData = (): AppState => {
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
       capacityHoursPerWeek: 40,
       currentWorkloadHours: 42, // high workload / alert
-      isOnline: true
+      isOnline: true,
+      accessKey: 'TIME-ROOM-EngCore-4m9p2v8k-8c2d-E3W1'
     },
     {
       id: 'tm-3',
@@ -149,7 +152,8 @@ export const getInitialData = (): AppState => {
       avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
       capacityHoursPerWeek: 40,
       currentWorkloadHours: 29,
-      isOnline: true
+      isOnline: true,
+      accessKey: 'TIME-ROOM-EngCore-9k1x4w8m-2d7f-E9X4'
     },
     {
       id: 'tm-4',
@@ -160,7 +164,8 @@ export const getInitialData = (): AppState => {
       avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
       capacityHoursPerWeek: 35,
       currentWorkloadHours: 24,
-      isOnline: false
+      isOnline: false,
+      accessKey: 'TIME-ROOM-GrowthHQ-2y5t9q6b-1a9c-M6K7'
     }
   ];
 
@@ -573,6 +578,10 @@ export const getInitialData = (): AppState => {
     reflections,
     auditLogs,
     workspaceMode: 'enterprise',
+    roomAccessKeys: getInitialRoomKeys(),
+    unlockedRoomIds: ['dept-eng', 'dept-prod', 'dept-mkt', 'dept-ops'],
+    activeAccessKey: 'TIME-ENT-RootAdm-9x8f2k4m-7a1b-X9Q4',
+    customCategories: ['Strategy', 'Deep Architecture', 'Customer Discovery', 'Design System', 'Operations'],
     userProfile: {
       name: 'Alex Rivera',
       role: 'Principal Systems Architect & Lead',
@@ -580,7 +589,8 @@ export const getInitialData = (): AppState => {
       workEndHour: 18,
       pomodoroLength: 25,
       shortBreakLength: 5,
-      longBreakLength: 15
+      longBreakLength: 15,
+      customAttentionSpanMinutes: 25
     }
   };
 };
@@ -604,6 +614,39 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
+// Upgrade helper to ensure backward compatibility with earlier saves
+function ensureUpgrades(state: AppState): AppState {
+  const initial = getInitialData();
+  const roomAccessKeys = state.roomAccessKeys && state.roomAccessKeys.length > 0 
+    ? state.roomAccessKeys 
+    : getInitialRoomKeys();
+  const customCategories = state.customCategories && state.customCategories.length > 0 
+    ? state.customCategories 
+    : ['Strategy', 'Deep Architecture', 'Customer Discovery', 'Design System', 'Operations'];
+  const unlockedRoomIds = state.unlockedRoomIds || ['dept-eng', 'dept-prod', 'dept-mkt', 'dept-ops'];
+  
+  // Ensure team members have access keys
+  const teamMembers = state.teamMembers.map(tm => {
+    if (!tm.accessKey) {
+      const match = initial.teamMembers.find(m => m.id === tm.id);
+      return { ...tm, accessKey: match?.accessKey || `TIME-ROOM-${tm.name.replace(/\s+/g, '')}-7a2b-8c9d` };
+    }
+    return tm;
+  });
+
+  return {
+    ...state,
+    roomAccessKeys,
+    customCategories,
+    unlockedRoomIds,
+    teamMembers,
+    userProfile: {
+      ...state.userProfile,
+      customAttentionSpanMinutes: state.userProfile?.customAttentionSpanMinutes || 25
+    }
+  };
+}
+
 // Load state from IndexedDB or fallback to localStorage
 export async function loadAppState(): Promise<AppState> {
   try {
@@ -617,7 +660,7 @@ export async function loadAppState(): Promise<AppState> {
     });
 
     if (result && result.tasks && result.projects) {
-      return result;
+      return ensureUpgrades(result);
     }
   } catch (err) {
     console.warn('IndexedDB read failed, trying localStorage fallback:', err);
@@ -628,7 +671,7 @@ export async function loadAppState(): Promise<AppState> {
     const local = localStorage.getItem(LOCAL_STORAGE_FALLBACK_KEY);
     if (local) {
       const parsed = JSON.parse(local);
-      if (parsed && parsed.tasks) return parsed;
+      if (parsed && parsed.tasks) return ensureUpgrades(parsed);
     }
   } catch (err) {
     console.warn('LocalStorage read failed:', err);

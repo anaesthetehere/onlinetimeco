@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Sparkles, 
   Search, 
@@ -16,7 +16,9 @@ import {
   Sun,
   Moon,
   Menu,
-  X
+  X,
+  Shield,
+  Key
 } from 'lucide-react';
 import { WorkspaceMode, AppState } from '../types';
 import { exportStateAsJSON, exportTasksAsCSV } from '../services/storage';
@@ -30,6 +32,7 @@ interface NavbarProps {
   onOpenFocusStudio: () => void;
   onResetData: () => void;
   onImportData: (data: AppState) => void;
+  onOpenAccessKeysModal?: () => void;
   activeFocusSession?: { taskTitle?: string; timeLeft: string; isRunning: boolean };
   appState: AppState;
   mobileSidebarOpen?: boolean;
@@ -44,6 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenFocusStudio,
   onResetData,
   onImportData,
+  onOpenAccessKeysModal,
   activeFocusSession,
   appState,
   mobileSidebarOpen,
@@ -52,6 +56,37 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { theme, toggleTheme } = useTheme();
   const [dataDropdownOpen, setDataDropdownOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const dataDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Automatically dismiss dropdowns when clicking outside anywhere on the site or pressing Esc
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (workspaceRef.current && !workspaceRef.current.contains(event.target as Node)) {
+        setWorkspaceMenuOpen(false);
+      }
+      if (dataDropdownRef.current && !dataDropdownRef.current.contains(event.target as Node)) {
+        setDataDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setWorkspaceMenuOpen(false);
+        setDataDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,7 +148,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-800" />
 
         {/* Workspace Dropdown */}
-        <div className="relative">
+        <div className="relative" ref={workspaceRef}>
           <button
             id="workspace-switcher-btn"
             onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
@@ -126,9 +161,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {workspaceMenuOpen && (
-            <div className="absolute left-0 mt-1.5 w-52 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute left-0 mt-1.5 w-60 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
               <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Select Workspace
+                Select Workspace Mode
               </div>
               <button
                 onClick={() => { onSelectWorkspaceMode('enterprise'); setWorkspaceMenuOpen(false); }}
@@ -136,7 +171,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   workspaceMode === 'enterprise' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
-                <span>Enterprise Fleet (All Depts)</span>
+                <div>
+                  <div className="font-semibold">Enterprise Fleet</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">All Depts + Room RBAC Keys</div>
+                </div>
                 {workspaceMode === 'enterprise' && <CheckCircle2 className="w-3.5 h-3.5" />}
               </button>
               <button
@@ -145,7 +183,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                   workspaceMode === 'startup' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
-                <span>Startup Core (Sprint Focus)</span>
+                <div>
+                  <div className="font-semibold">Startup Core</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">Shared Sprint Key</div>
+                </div>
                 {workspaceMode === 'startup' && <CheckCircle2 className="w-3.5 h-3.5" />}
               </button>
               <button
@@ -154,9 +195,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                   workspaceMode === 'personal' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
-                <span>Personal Flow (My Tasks)</span>
+                <div>
+                  <div className="font-semibold">Personal Flow</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">Full Rights & Solo Autonomy</div>
+                </div>
                 {workspaceMode === 'personal' && <CheckCircle2 className="w-3.5 h-3.5" />}
               </button>
+
+              <div className="border-t border-slate-100 dark:border-slate-800/80 my-1" />
+              {onOpenAccessKeysModal && (
+                <button
+                  onClick={() => { setWorkspaceMenuOpen(false); onOpenAccessKeysModal(); }}
+                  className="w-full text-left px-3 py-2 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 flex items-center gap-2 font-medium"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>Manage Access & Room Keys</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -224,6 +279,20 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="sm:hidden">AI Planner</span>
         </button>
 
+        {/* Access Control & Room Keys Button */}
+        {onOpenAccessKeysModal && (
+          <button
+            id="access-keys-btn"
+            onClick={onOpenAccessKeysModal}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors"
+            title="Manage Access Keys & Room Permissions"
+            aria-label="Access Keys and Room Permissions"
+          >
+            <Shield className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span className="hidden xl:inline text-[11px] font-mono capitalize">{workspaceMode} Keys</span>
+          </button>
+        )}
+
         {/* Theme Toggle Button (Dark / Light) */}
         <button
           id="theme-toggle-btn"
@@ -240,7 +309,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         {/* Local Storage & Export Controls */}
-        <div className="relative">
+        <div className="relative" ref={dataDropdownRef}>
           <button
             id="data-sync-menu-btn"
             onClick={() => setDataDropdownOpen(!dataDropdownOpen)}

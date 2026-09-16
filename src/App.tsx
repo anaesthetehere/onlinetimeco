@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { AppState, Task, TimeBlock, Project, FocusSession, RiskItem, Habit, DailyReflection, WorkspaceMode } from './types';
+import { AppState, Task, TimeBlock, Project, FocusSession, RiskItem, Habit, DailyReflection, WorkspaceMode, RoomAccessKey, TeamMember, Department } from './types';
 import { loadAppState, saveAppState, getInitialData } from './services/storage';
 import { Navbar } from './components/Navbar';
 import { Sidebar, ActiveView } from './components/Sidebar';
 import { TaskModal } from './components/TaskModal';
 import { AISchedulerModal } from './components/AISchedulerModal';
 import { CommandMenu } from './components/CommandMenu';
+import { AccessKeysModal } from './components/AccessKeysModal';
 
 // Views
 import { PlannerView } from './views/PlannerView';
@@ -28,6 +29,7 @@ export default function App() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
+  const [accessKeysModalOpen, setAccessKeysModalOpen] = useState(false);
   const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -148,6 +150,71 @@ export default function App() {
     setAppState(prev => ({ ...prev, workspaceMode: mode }));
   };
 
+  const handleUpdateRoomKeys = (keys: RoomAccessKey[]) => {
+    setAppState(prev => ({ ...prev, roomAccessKeys: keys }));
+    logAction('ACCESS_KEYS_MODIFIED', 'task', `Updated cryptographic room access keys register (${keys.length} keys).`);
+  };
+
+  const handleUnlockRoom = (roomId: string) => {
+    setAppState(prev => ({
+      ...prev,
+      unlockedRoomIds: Array.from(new Set([...(prev.unlockedRoomIds || []), roomId]))
+    }));
+    logAction('ROOM_UNLOCKED', 'task', `Unlocked department room chamber: ${roomId}`);
+  };
+
+  const handleSetActiveKey = (key: string) => {
+    setAppState(prev => ({ ...prev, activeAccessKey: key }));
+  };
+
+  const handleAddTeamMember = (member: TeamMember) => {
+    setAppState(prev => ({
+      ...prev,
+      teamMembers: [...prev.teamMembers, member]
+    }));
+    logAction('TEAM_MEMBER_ALLOTTED', 'task', `Allotted ${member.name} (${member.role}) with cryptographic key ${member.accessKey || 'N/A'}`);
+  };
+
+  const handleUpdateTeamMember = (updatedMember: TeamMember) => {
+    setAppState(prev => ({
+      ...prev,
+      teamMembers: prev.teamMembers.map(m => m.id === updatedMember.id ? updatedMember : m)
+    }));
+    logAction('TEAM_MEMBER_UPDATED', 'task', `Updated designation/profile for ${updatedMember.name} (${updatedMember.role})`);
+  };
+
+  const handleDeleteTeamMember = (memberId: string) => {
+    const member = appState.teamMembers.find(m => m.id === memberId);
+    setAppState(prev => ({
+      ...prev,
+      teamMembers: prev.teamMembers.filter(m => m.id !== memberId),
+      tasks: prev.tasks.map(t => t.assignedTo === memberId ? { ...t, assignedTo: undefined } : t)
+    }));
+    logAction('TEAM_MEMBER_REMOVED', 'task', `Removed team member ${member?.name || memberId}`);
+  };
+
+  const handleAddDepartment = (dept: Department) => {
+    setAppState(prev => ({
+      ...prev,
+      departments: [...prev.departments, dept],
+      unlockedRoomIds: Array.from(new Set([...(prev.unlockedRoomIds || []), dept.id]))
+    }));
+    logAction('DEPARTMENT_CREATED', 'project', `Created department room: ${dept.name} (${dept.code})`);
+  };
+
+  const handleAddCustomCategory = (category: string) => {
+    setAppState(prev => ({
+      ...prev,
+      customCategories: Array.from(new Set([...(prev.customCategories || []), category]))
+    }));
+    logAction('CATEGORY_CREATED', 'task', `Created custom task category: ${category}`);
+  };
+
+  const handleUpdateUserProfile = (userProfile: AppState['userProfile']) => {
+    setAppState(prev => ({ ...prev, userProfile }));
+    logAction('USER_PROFILE_UPDATED', 'task', `Calibrated user focus span: ${userProfile.customAttentionSpanMinutes || 25}m`);
+  };
+
   const handleResetData = () => {
     const initial = getInitialData();
     setAppState(initial);
@@ -212,6 +279,7 @@ export default function App() {
         onOpenFocusStudio={() => setActiveView('focus')}
         onResetData={handleResetData}
         onImportData={handleImportData}
+        onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
         appState={appState}
         mobileSidebarOpen={mobileSidebarOpen}
         onToggleMobileSidebar={() => setMobileSidebarOpen(prev => !prev)}
@@ -267,6 +335,7 @@ export default function App() {
               appState={displayedState}
               onSaveSession={handleSaveFocusSession}
               onUpdateTasks={handleUpdateTasks}
+              onUpdateUserProfile={handleUpdateUserProfile}
               initialTaskId={focusTaskId}
             />
           )}
@@ -282,7 +351,13 @@ export default function App() {
           )}
 
           {activeView === 'enterprise' && (
-            <EnterpriseView appState={displayedState} />
+            <EnterpriseView
+              appState={displayedState}
+              onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
+              onUpdateTeamMember={handleUpdateTeamMember}
+              onDeleteTeamMember={handleDeleteTeamMember}
+              onAddTeamMember={handleAddTeamMember}
+            />
           )}
 
           {activeView === 'risks' && (
@@ -316,6 +391,10 @@ export default function App() {
         departments={appState.departments}
         teamMembers={appState.teamMembers}
         allTasks={appState.tasks}
+        customCategories={appState.customCategories}
+        onAddCustomCategory={handleAddCustomCategory}
+        onAddTeamMember={handleAddTeamMember}
+        onAddDepartment={handleAddDepartment}
       />
 
       {/* AI Schedule Optimization Modal */}
@@ -324,6 +403,17 @@ export default function App() {
         onClose={() => setAiModalOpen(false)}
         appState={appState}
         onApplySchedule={handleApplyAiSchedule}
+      />
+
+      {/* Access Keys & RBAC Management Modal */}
+      <AccessKeysModal
+        isOpen={accessKeysModalOpen}
+        onClose={() => setAccessKeysModalOpen(false)}
+        appState={appState}
+        onSelectWorkspaceMode={handleSelectWorkspaceMode}
+        onUpdateRoomKeys={handleUpdateRoomKeys}
+        onUnlockRoom={handleUnlockRoom}
+        onSetActiveKey={handleSetActiveKey}
       />
 
       {/* Raycast / Linear Style Command Palette */}

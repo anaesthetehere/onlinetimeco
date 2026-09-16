@@ -25,6 +25,7 @@ interface FocusViewProps {
   appState: AppState;
   onSaveSession: (session: FocusSession) => void;
   onUpdateTasks: (tasks: Task[]) => void;
+  onUpdateUserProfile?: (profile: AppState['userProfile']) => void;
   initialTaskId?: string;
 }
 
@@ -32,11 +33,13 @@ export const FocusView: React.FC<FocusViewProps> = ({
   appState,
   onSaveSession,
   onUpdateTasks,
+  onUpdateUserProfile,
   initialTaskId
 }) => {
+  const initialAttentionSpan = appState.userProfile?.customAttentionSpanMinutes || appState.userProfile?.pomodoroLength || 25;
   const [sessionType, setSessionType] = useState<'pomodoro' | 'short_break' | 'long_break'>('pomodoro');
-  const [durationMinutes, setDurationMinutes] = useState(25);
-  const [secondsLeft, setSecondsLeft] = useState(25 * 60);
+  const [durationMinutes, setDurationMinutes] = useState(initialAttentionSpan);
+  const [secondsLeft, setSecondsLeft] = useState(initialAttentionSpan * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string>(initialTaskId || '');
   const [ambientSound, setAmbientSound] = useState<AmbientSoundType>('rain');
@@ -44,16 +47,39 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [sessionRating, setSessionRating] = useState(5);
   const [sessionNotes, setSessionNotes] = useState('');
+  const [customInputMins, setCustomInputMins] = useState(initialAttentionSpan.toString());
+  const [isSpanSaved, setIsSpanSaved] = useState(false);
 
   // Switch durations when session type changes
   useEffect(() => {
-    let mins = 25;
+    let mins = initialAttentionSpan;
     if (sessionType === 'short_break') mins = 5;
     if (sessionType === 'long_break') mins = 15;
     setDurationMinutes(mins);
     setSecondsLeft(mins * 60);
     setIsRunning(false);
-  }, [sessionType]);
+  }, [sessionType, initialAttentionSpan]);
+
+  const handleApplyCustomSpan = (mins: number) => {
+    const clamped = Math.max(1, Math.min(240, Math.round(mins)));
+    setDurationMinutes(clamped);
+    setCustomInputMins(clamped.toString());
+    setSecondsLeft(clamped * 60);
+    setIsRunning(false);
+    setSessionType('pomodoro');
+  };
+
+  const handleSaveSpanAsDefault = () => {
+    if (onUpdateUserProfile && appState.userProfile) {
+      onUpdateUserProfile({
+        ...appState.userProfile,
+        customAttentionSpanMinutes: durationMinutes,
+        pomodoroLength: durationMinutes
+      });
+      setIsSpanSaved(true);
+      setTimeout(() => setIsSpanSaved(false), 2000);
+    }
+  };
 
   // Timer Tick Interval
   useEffect(() => {
@@ -167,32 +193,129 @@ export const FocusView: React.FC<FocusViewProps> = ({
           </p>
         </div>
 
-        {/* Interval Mode Selector */}
-        <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-xs">
-          <button
-            onClick={() => setSessionType('pomodoro')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              sessionType === 'pomodoro' ? 'bg-indigo-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            25m Focus
-          </button>
-          <button
-            onClick={() => setSessionType('short_break')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              sessionType === 'short_break' ? 'bg-emerald-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            5m Break
-          </button>
-          <button
-            onClick={() => setSessionType('long_break')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-              sessionType === 'long_break' ? 'bg-cyan-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            15m Reset
-          </button>
+        {/* Interval & Attention Span Mode Selector */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-xs">
+            <button
+              onClick={() => { setSessionType('pomodoro'); handleApplyCustomSpan(15); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                sessionType === 'pomodoro' && durationMinutes === 15 ? 'bg-indigo-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              15m
+            </button>
+            <button
+              onClick={() => { setSessionType('pomodoro'); handleApplyCustomSpan(25); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                sessionType === 'pomodoro' && durationMinutes === 25 ? 'bg-indigo-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              25m
+            </button>
+            <button
+              onClick={() => { setSessionType('pomodoro'); handleApplyCustomSpan(45); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                sessionType === 'pomodoro' && durationMinutes === 45 ? 'bg-indigo-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              45m
+            </button>
+            <button
+              onClick={() => { setSessionType('pomodoro'); handleApplyCustomSpan(60); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                sessionType === 'pomodoro' && durationMinutes === 60 ? 'bg-indigo-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              60m
+            </button>
+            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+            <button
+              onClick={() => setSessionType('short_break')}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                sessionType === 'short_break' ? 'bg-emerald-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              5m Break
+            </button>
+            <button
+              onClick={() => setSessionType('long_break')}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                sessionType === 'long_break' ? 'bg-cyan-600 text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              15m Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Attention Span Customizer Bar */}
+      <div className="max-w-4xl mx-auto w-full pt-4">
+        <div className="p-3 sm:p-3.5 rounded-xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <div>
+              <span className="text-xs font-bold text-slate-900 dark:text-white">Custom Attention Span</span>
+              <span className="hidden sm:inline text-slate-500 dark:text-slate-400 text-xs ml-1.5">— calibrate your personal focus endurance</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => handleApplyCustomSpan(durationMinutes - 5)}
+                className="px-2 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors"
+                title="Decrease 5 minutes"
+              >
+                -5m
+              </button>
+              <div className="flex items-center px-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="240"
+                  value={customInputMins}
+                  onChange={(e) => {
+                    setCustomInputMins(e.target.value);
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val) && val > 0) {
+                      handleApplyCustomSpan(val);
+                    }
+                  }}
+                  className="w-12 text-center text-xs font-mono font-bold bg-transparent text-indigo-600 dark:text-indigo-400 focus:outline-hidden"
+                />
+                <span className="text-[11px] text-slate-400 font-mono">min</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleApplyCustomSpan(durationMinutes + 5)}
+                className="px-2 py-1 text-xs font-mono text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 rounded transition-colors"
+                title="Increase 5 minutes"
+              >
+                +5m
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSaveSpanAsDefault}
+              className="px-2.5 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5"
+              title="Save current duration as default personal attention span"
+            >
+              {isSpanSaved ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-emerald-600">Saved Default</span>
+                </>
+              ) : (
+                <>
+                  <Star className="w-3.5 h-3.5" />
+                  <span>Set as My Default Span</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 

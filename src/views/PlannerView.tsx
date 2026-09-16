@@ -70,13 +70,15 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
     e.preventDefault();
     if (!newBlockTitle.trim()) return;
 
-    const colors: Record<TimeBlock['category'], string> = {
+    const colors: Record<string, string> = {
       deep_work: '#6366f1',
       meeting: '#ec4899',
       review: '#3b82f6',
       admin: '#64748b',
       break: '#10b981'
     };
+
+    const blockColor = colors[newBlockCategory] || '#8b5cf6';
 
     const newBlock: TimeBlock = {
       id: `block-${Date.now()}`,
@@ -86,7 +88,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
       endTime: newBlockEnd,
       category: newBlockCategory,
       isAiScheduled: false,
-      color: colors[newBlockCategory]
+      color: blockColor
     };
 
     onUpdateBlocks([...appState.timeBlocks, newBlock]);
@@ -309,6 +311,9 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                     <option value="review">Review</option>
                     <option value="admin">Admin</option>
                     <option value="break">Break / Lunch</option>
+                    {appState.customCategories?.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex gap-2">

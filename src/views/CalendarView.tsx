@@ -53,6 +53,51 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const weekDates = getWeekDates(currentDate);
   const formatDateString = (d: Date) => d.toISOString().split('T')[0];
 
+  // Helper to compute all days for Month View (7 columns, Monday to Sunday)
+  const getMonthDays = (baseDate: Date) => {
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+
+    // Monday-based starting day of week: (day === 0 ? 6 : day - 1)
+    const startDayOfWeek = (firstDayOfMonth.getDay() + 6) % 7;
+    const days: { date: Date; isCurrentMonth: boolean }[] = [];
+
+    // Previous month padding
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const d = new Date(year, month, -i);
+      days.push({ date: d, isCurrentMonth: false });
+    }
+
+    // Current month days
+    for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
+      days.push({ date: new Date(year, month, i), isCurrentMonth: true });
+    }
+
+    // Next month padding to fill complete 7-column rows
+    const totalRemaining = (7 - (days.length % 7)) % 7;
+    for (let i = 1; i <= totalRemaining; i++) {
+      days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
+    }
+
+    return days;
+  };
+
+  const monthDays = getMonthDays(currentDate);
+
+  const getHeaderDateTitle = () => {
+    if (calendarMode === 'day') {
+      return currentDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+    } else if (calendarMode === 'week') {
+      const start = weekDates[0];
+      const end = weekDates[6];
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    } else {
+      return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+  };
+
   const navigateDate = (amount: number) => {
     const next = new Date(currentDate);
     if (calendarMode === 'day') next.setDate(next.getDate() + amount);
@@ -129,6 +174,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             >
               Week
             </button>
+            <button
+              onClick={() => setCalendarMode('month')}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                calendarMode === 'month' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Month
+            </button>
           </div>
         </div>
 
@@ -138,8 +191,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <button onClick={() => navigateDate(-1)} className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-2 sm:px-3 text-xs font-semibold text-slate-900 dark:text-white font-mono">
-              {currentDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric', day: 'numeric' })}
+            <span className="px-2 sm:px-3 text-xs font-semibold text-slate-900 dark:text-white font-mono min-w-[130px] text-center">
+              {getHeaderDateTitle()}
             </span>
             <button onClick={() => navigateDate(1)} className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800">
               <ChevronRight className="w-4 h-4" />
@@ -157,6 +210,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <option value="review">Reviews</option>
             <option value="admin">Admin</option>
             <option value="break">Breaks</option>
+            {appState.customCategories?.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
           </select>
 
           <button
@@ -169,137 +225,222 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       </div>
 
-      {/* Week Grid */}
-      <div className="flex-1 overflow-auto p-3 sm:p-4">
-        <div className="min-w-[720px] rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 overflow-hidden flex flex-col h-full shadow-xs">
-          {/* Weekday Columns Header */}
-          <div className="grid grid-cols-8 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 font-mono text-xs">
-            <div className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80 font-bold">
-              Time
+      {/* Main Calendar Views: Month or Day/Week */}
+      {calendarMode === 'month' ? (
+        /* Month View Grid */
+        <div className="flex-1 overflow-auto p-3 sm:p-4">
+          <div className="min-w-[760px] rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 overflow-hidden flex flex-col h-full shadow-xs">
+            {/* Month Day Headers (Mon - Sun) */}
+            <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 font-mono text-xs text-center font-bold">
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                <div key={day} className="p-2.5 border-r border-slate-200 dark:border-slate-800/80 last:border-r-0">
+                  {day}
+                </div>
+              ))}
             </div>
-            {calendarMode === 'week' ? (
-              weekDates.map(d => {
-                const isToday = formatDateString(d) === getTodayString();
+
+            {/* Month Days Grid */}
+            <div className="flex-1 grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-200 dark:divide-slate-800/50 overflow-y-auto">
+              {monthDays.map(({ date, isCurrentMonth }) => {
+                const dateStr = formatDateString(date);
+                const isToday = dateStr === getTodayString();
+                const dayBlocks = filteredBlocks.filter(b => b.date === dateStr);
+
                 return (
                   <div
-                    key={d.toISOString()}
-                    className={`p-3 text-center border-r border-slate-200 dark:border-slate-800/80 last:border-r-0 ${
-                      isToday ? 'bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold' : ''
+                    key={dateStr}
+                    onClick={() => setQuickModalSlot({ date: dateStr, hour: 10 })}
+                    className={`min-h-[105px] p-2 flex flex-col justify-between transition-colors cursor-pointer group hover:bg-indigo-50/20 dark:hover:bg-slate-800/20 ${
+                      !isCurrentMonth ? 'bg-slate-50/50 dark:bg-slate-950/40 text-slate-400 dark:text-slate-600' : 'bg-white dark:bg-slate-900/30'
                     }`}
                   >
-                    <div>{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">{d.getDate()}</div>
+                    {/* Day number & today marker */}
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                        isToday
+                          ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                          : isCurrentMonth
+                          ? 'text-slate-800 dark:text-slate-200'
+                          : 'text-slate-400 dark:text-slate-600'
+                      }`}>
+                        {date.getDate()}
+                      </span>
+                      {dayBlocks.length > 0 && (
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {dayBlocks.length} block{dayBlocks.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Time block pills list */}
+                    <div className="flex-1 overflow-y-auto space-y-1 my-1">
+                      {dayBlocks.slice(0, 3).map(block => (
+                        <div
+                          key={block.id}
+                          onClick={(e) => { e.stopPropagation(); }}
+                          className="px-1.5 py-0.5 rounded text-[10px] text-white truncate flex items-center justify-between group/block relative shadow-xs"
+                          style={{ backgroundColor: `${block.color}f0` }}
+                          title={`${block.title} (${block.startTime} - ${block.endTime})`}
+                        >
+                          <span className="truncate">{block.startTime} {block.title}</span>
+                          <button
+                            onClick={(e) => handleDeleteBlock(block.id, e)}
+                            className="text-white/80 hover:text-white opacity-0 group-hover/block:opacity-100 ml-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      {dayBlocks.length > 3 && (
+                        <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                          +{dayBlocks.length - 3} more
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick add prompt */}
+                    <div className="opacity-0 group-hover:opacity-100 text-[10px] text-indigo-600 dark:text-indigo-400 font-medium text-center transition-opacity">
+                      + Add Block
+                    </div>
                   </div>
                 );
-              })
-            ) : (
-              <div className="col-span-7 p-3 text-center font-bold text-slate-900 dark:text-white bg-indigo-50/50 dark:bg-indigo-950/30">
-                {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </div>
-            )}
-          </div>
-
-          {/* Hourly Slots Table */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800/40">
-            {hours.map(hour => {
-              const hourStr = `${hour.toString().padStart(2, '0')}:00`;
-              return (
-                <div key={hour} className="grid grid-cols-8 min-h-[64px]">
-                  {/* Time label */}
-                  <div className="p-2 border-r border-slate-200 dark:border-slate-800/80 text-[11px] font-mono text-slate-500 dark:text-slate-400 text-center flex items-center justify-center">
-                    {hourStr}
-                  </div>
-
-                  {/* Day Slots */}
-                  {calendarMode === 'week' ? (
-                    weekDates.map(d => {
-                      const dateStr = formatDateString(d);
-                      const matchingBlocks = filteredBlocks.filter(b => {
-                        if (b.date !== dateStr) return false;
-                        const [startH] = b.startTime.split(':').map(Number);
-                        return startH === hour;
-                      });
-
-                      return (
-                        <div
-                          key={dateStr}
-                          onClick={() => setQuickModalSlot({ date: dateStr, hour })}
-                          className="p-1 border-r border-slate-200 dark:border-slate-800/40 last:border-r-0 relative hover:bg-indigo-50/30 dark:hover:bg-slate-800/20 cursor-pointer transition-colors group flex flex-col gap-1"
-                        >
-                          {matchingBlocks.map(block => (
-                            <div
-                              key={block.id}
-                              onClick={(e) => e.stopPropagation()}
-                              className="p-1.5 rounded text-[10px] text-white shadow-xs flex flex-col justify-between overflow-hidden relative group/block"
-                              style={{ backgroundColor: `${block.color}f0`, borderLeft: `3px solid ${block.color}` }}
-                            >
-                              <div className="font-semibold truncate pr-4">{block.title}</div>
-                              <div className="text-[9px] opacity-90 font-mono mt-0.5 flex items-center justify-between">
-                                <span>{block.startTime} - {block.endTime}</span>
-                                {block.isAiScheduled && <Sparkles className="w-2.5 h-2.5" />}
-                              </div>
-                              <button
-                                onClick={(e) => handleDeleteBlock(block.id, e)}
-                                className="absolute right-1 top-1 text-white/80 hover:text-white opacity-0 group-hover/block:opacity-100 transition-opacity"
-                              >
-                                <Trash2 className="w-2.5 h-2.5" />
-                              </button>
-                            </div>
-                          ))}
-
-                          {matchingBlocks.length === 0 && (
-                            <div className="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                              + Block
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    // Single Day view slot
-                    (() => {
-                      const dateStr = formatDateString(currentDate);
-                      const matchingBlocks = filteredBlocks.filter(b => {
-                        if (b.date !== dateStr) return false;
-                        const [startH] = b.startTime.split(':').map(Number);
-                        return startH === hour;
-                      });
-                      return (
-                        <div
-                          onClick={() => setQuickModalSlot({ date: dateStr, hour })}
-                          className="col-span-7 p-1.5 relative hover:bg-indigo-50/30 dark:hover:bg-slate-800/20 cursor-pointer transition-colors group flex gap-2"
-                        >
-                          {matchingBlocks.map(block => (
-                            <div
-                              key={block.id}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-1 p-2 rounded-lg text-white shadow-xs flex items-center justify-between overflow-hidden relative group/block"
-                              style={{ backgroundColor: `${block.color}f0`, borderLeft: `4px solid ${block.color}` }}
-                            >
-                              <div>
-                                <div className="font-bold text-xs">{block.title}</div>
-                                <div className="text-[11px] opacity-90 font-mono mt-0.5">
-                                  {block.startTime} - {block.endTime} • {block.category.replace('_', ' ')}
-                                </div>
-                              </div>
-                              <button
-                                onClick={(e) => handleDeleteBlock(block.id, e)}
-                                className="text-white/80 hover:text-white p-1 rounded"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()
-                  )}
-                </div>
-              );
-            })}
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* Week & Day Views */
+        <div className="flex-1 overflow-auto p-3 sm:p-4">
+          <div className="min-w-[720px] rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/80 overflow-hidden flex flex-col h-full shadow-xs">
+            {/* Weekday Columns Header */}
+            <div className="grid grid-cols-8 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 text-slate-600 dark:text-slate-400 font-mono text-xs">
+              <div className="p-3 text-center border-r border-slate-200 dark:border-slate-800/80 font-bold">
+                Time
+              </div>
+              {calendarMode === 'week' ? (
+                weekDates.map(d => {
+                  const isToday = formatDateString(d) === getTodayString();
+                  return (
+                    <div
+                      key={d.toISOString()}
+                      className={`p-3 text-center border-r border-slate-200 dark:border-slate-800/80 last:border-r-0 ${
+                        isToday ? 'bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold' : ''
+                      }`}
+                    >
+                      <div>{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white mt-0.5">{d.getDate()}</div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-7 p-3 text-center font-bold text-slate-900 dark:text-white bg-indigo-50/50 dark:bg-indigo-950/30">
+                  {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </div>
+              )}
+            </div>
+
+            {/* Hourly Slots Table */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800/40">
+              {hours.map(hour => {
+                const hourStr = `${hour.toString().padStart(2, '0')}:00`;
+                return (
+                  <div key={hour} className="grid grid-cols-8 min-h-[64px]">
+                    {/* Time label */}
+                    <div className="p-2 border-r border-slate-200 dark:border-slate-800/80 text-[11px] font-mono text-slate-500 dark:text-slate-400 text-center flex items-center justify-center">
+                      {hourStr}
+                    </div>
+
+                    {/* Day Slots */}
+                    {calendarMode === 'week' ? (
+                      weekDates.map(d => {
+                        const dateStr = formatDateString(d);
+                        const matchingBlocks = filteredBlocks.filter(b => {
+                          if (b.date !== dateStr) return false;
+                          const [startH] = b.startTime.split(':').map(Number);
+                          return startH === hour;
+                        });
+
+                        return (
+                          <div
+                            key={dateStr}
+                            onClick={() => setQuickModalSlot({ date: dateStr, hour })}
+                            className="p-1 border-r border-slate-200 dark:border-slate-800/40 last:border-r-0 relative hover:bg-indigo-50/30 dark:hover:bg-slate-800/20 cursor-pointer transition-colors group flex flex-col gap-1"
+                          >
+                            {matchingBlocks.map(block => (
+                              <div
+                                key={block.id}
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1.5 rounded text-[10px] text-white shadow-xs flex flex-col justify-between overflow-hidden relative group/block"
+                                style={{ backgroundColor: `${block.color}f0`, borderLeft: `3px solid ${block.color}` }}
+                              >
+                                <div className="font-semibold truncate pr-4">{block.title}</div>
+                                <div className="text-[9px] opacity-90 font-mono mt-0.5 flex items-center justify-between">
+                                  <span>{block.startTime} - {block.endTime}</span>
+                                  {block.isAiScheduled && <Sparkles className="w-2.5 h-2.5" />}
+                                </div>
+                                <button
+                                  onClick={(e) => handleDeleteBlock(block.id, e)}
+                                  className="absolute right-1 top-1 text-white/80 hover:text-white opacity-0 group-hover/block:opacity-100 transition-opacity"
+                                >
+                                  <Trash2 className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
+                            ))}
+
+                            {matchingBlocks.length === 0 && (
+                              <div className="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                + Block
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      // Single Day view slot
+                      (() => {
+                        const dateStr = formatDateString(currentDate);
+                        const matchingBlocks = filteredBlocks.filter(b => {
+                          if (b.date !== dateStr) return false;
+                          const [startH] = b.startTime.split(':').map(Number);
+                          return startH === hour;
+                        });
+                        return (
+                          <div
+                            onClick={() => setQuickModalSlot({ date: dateStr, hour })}
+                            className="col-span-7 p-1.5 relative hover:bg-indigo-50/30 dark:hover:bg-slate-800/20 cursor-pointer transition-colors group flex gap-2"
+                          >
+                            {matchingBlocks.map(block => (
+                              <div
+                                key={block.id}
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex-1 p-2 rounded-lg text-white shadow-xs flex items-center justify-between overflow-hidden relative group/block"
+                                style={{ backgroundColor: `${block.color}f0`, borderLeft: `4px solid ${block.color}` }}
+                              >
+                                <div>
+                                  <div className="font-bold text-xs">{block.title}</div>
+                                  <div className="text-[11px] opacity-90 font-mono mt-0.5">
+                                    {block.startTime} - {block.endTime} • {block.category.replace('_', ' ')}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={(e) => handleDeleteBlock(block.id, e)}
+                                  className="text-white/80 hover:text-white p-1 rounded"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quick Add Time Block Modal */}
       {quickModalSlot && (
