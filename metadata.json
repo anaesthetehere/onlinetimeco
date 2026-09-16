@@ -1,0 +1,6 @@
+{
+  "name": "TIME-CO",
+  "description": "AI-Powered Productivity, Time Management & Enterprise Operations Platform with intelligent scheduling, time blocking, Pomodoro focus, and risk management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
