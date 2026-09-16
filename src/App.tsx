@@ -30,6 +30,8 @@ export default function App() {
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
 
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
   // Initial load from IndexedDB / localStorage
   useEffect(() => {
     loadAppState().then(data => {
@@ -190,9 +192,9 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="h-screen bg-slate-950 flex items-center justify-center text-slate-400 font-mono text-xs">
+      <div className="h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-600 dark:text-slate-400 font-mono text-xs transition-colors duration-150">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping" />
+          <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 dark:bg-indigo-500 animate-ping" />
           <span>Mounting TIME-CO Local Persistence Engine...</span>
         </div>
       </div>
@@ -200,7 +202,7 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden select-none">
+    <div className="h-screen flex flex-col bg-slate-100/90 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden select-none transition-colors duration-150">
       {/* Top Navigation Bar */}
       <Navbar
         workspaceMode={appState.workspaceMode}
@@ -211,15 +213,22 @@ export default function App() {
         onResetData={handleResetData}
         onImportData={handleImportData}
         appState={appState}
+        mobileSidebarOpen={mobileSidebarOpen}
+        onToggleMobileSidebar={() => setMobileSidebarOpen(prev => !prev)}
       />
 
       {/* Main Workspace: Sidebar + Viewport */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         <Sidebar
           activeView={activeView}
-          onSelectView={setActiveView}
+          onSelectView={(view) => {
+            setActiveView(view);
+            setMobileSidebarOpen(false);
+          }}
           onOpenNewTaskModal={handleOpenNewTask}
           appState={displayedState}
+          mobileOpen={mobileSidebarOpen}
+          onCloseMobile={() => setMobileSidebarOpen(false)}
         />
 
         {/* View Rendering */}

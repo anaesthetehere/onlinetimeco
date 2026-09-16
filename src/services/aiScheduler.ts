@@ -314,3 +314,41 @@ Generate high-performance operational guidance in JSON:
       : 'Use 25-minute Pomodoro intervals with white or pink noise to maintain sustained cognitive momentum.'
   };
 }
+
+export function calculateWorkloadMetric(
+  blocks: TimeBlock[],
+  workStartHour = 9,
+  workEndHour = 18
+): {
+  totalScheduledMinutes: number;
+  deepWorkMinutes: number;
+  deepWorkPercentage: number;
+  overloaded: boolean;
+} {
+  let totalScheduledMinutes = 0;
+  let deepWorkMinutes = 0;
+
+  blocks.forEach(b => {
+    const [sh, sm] = b.startTime.split(':').map(Number);
+    const [eh, em] = b.endTime.split(':').map(Number);
+    const dur = Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+    totalScheduledMinutes += dur;
+    if (b.category === 'deep_work') {
+      deepWorkMinutes += dur;
+    }
+  });
+
+  const availableMinutes = Math.max(60, (workEndHour - workStartHour) * 60);
+  const deepWorkPercentage = totalScheduledMinutes > 0 
+    ? Math.round((deepWorkMinutes / totalScheduledMinutes) * 100) 
+    : 0;
+  const overloaded = totalScheduledMinutes > availableMinutes * 0.9;
+
+  return {
+    totalScheduledMinutes,
+    deepWorkMinutes,
+    deepWorkPercentage,
+    overloaded
+  };
+}
+
