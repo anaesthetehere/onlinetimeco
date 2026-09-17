@@ -11,7 +11,8 @@ import {
   AlertCircle,
   ExternalLink,
   Sliders,
-  Play
+  Play,
+  BookOpen
 } from 'lucide-react';
 import { AppState, TimeBlock, Task } from '../types';
 import { runLocalSmartScheduler, calculateWorkloadMetric } from '../services/aiScheduler';
@@ -24,6 +25,7 @@ interface PlannerViewProps {
   onOpenAiModal: () => void;
   onSelectTask: (task: Task) => void;
   onOpenNewTaskModal: () => void;
+  onOpenManual?: () => void;
 }
 
 export const PlannerView: React.FC<PlannerViewProps> = ({
@@ -32,7 +34,8 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
   onUpdateTasks,
   onOpenAiModal,
   onSelectTask,
-  onOpenNewTaskModal
+  onOpenNewTaskModal,
+  onOpenManual
 }) => {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
   const [isAddingBlock, setIsAddingBlock] = useState(false);
@@ -141,6 +144,23 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
 
         {/* Date Controls & AI Autopilot Button */}
         <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+          {/* Landing Page Instruction Manual Button */}
+          {onOpenManual && (
+            <button
+              id="landing-manual-btn"
+              onClick={onOpenManual}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors shadow-2xs cursor-pointer"
+              title="Open Instruction Manual for Enterprise Fleet, Startup Core & Personal Flow"
+              aria-label="Open Instruction Manual"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span>Instruction Manual</span>
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                Free Prototype
+              </span>
+            </button>
+          )}
+
           <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-xs">
             <button
               onClick={() => navigateDay(-1)}

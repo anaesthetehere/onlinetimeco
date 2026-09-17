@@ -18,7 +18,8 @@ import {
   Menu,
   X,
   Shield,
-  Key
+  Key,
+  BookOpen
 } from 'lucide-react';
 import { WorkspaceMode, AppState } from '../types';
 import { exportStateAsJSON, exportTasksAsCSV } from '../services/storage';
@@ -33,6 +34,7 @@ interface NavbarProps {
   onResetData: () => void;
   onImportData: (data: AppState) => void;
   onOpenAccessKeysModal?: () => void;
+  onOpenManual?: () => void;
   activeFocusSession?: { taskTitle?: string; timeLeft: string; isRunning: boolean };
   appState: AppState;
   mobileSidebarOpen?: boolean;
@@ -48,6 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onResetData,
   onImportData,
   onOpenAccessKeysModal,
+  onOpenManual,
   activeFocusSession,
   appState,
   mobileSidebarOpen,
@@ -203,6 +206,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               <div className="border-t border-slate-100 dark:border-slate-800/80 my-1" />
+              {onOpenManual && (
+                <button
+                  id="dropdown-manual-btn"
+                  onClick={() => { setWorkspaceMenuOpen(false); onOpenManual(); }}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between font-medium"
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <span>Instruction Manual</span>
+                  </div>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">Free</span>
+                </button>
+              )}
               {onOpenAccessKeysModal && (
                 <button
                   onClick={() => { setWorkspaceMenuOpen(false); onOpenAccessKeysModal(); }}
@@ -278,6 +294,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="hidden sm:inline">AI Schedule Planner</span>
           <span className="sm:hidden">AI Planner</span>
         </button>
+
+        {/* User Instruction Manual Button */}
+        {onOpenManual && (
+          <button
+            id="navbar-manual-btn"
+            onClick={onOpenManual}
+            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium transition-colors"
+            title="Instruction Manual (Enterprise, Startup & Personal Levels)"
+            aria-label="User Instruction Manual"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span className="hidden md:inline">Manual</span>
+            <span className="hidden lg:inline-block px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+              Free
+            </span>
+          </button>
+        )}
 
         {/* Access Control & Room Keys Button */}
         {onOpenAccessKeysModal && (

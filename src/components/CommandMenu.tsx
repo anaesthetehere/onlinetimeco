@@ -13,7 +13,8 @@ import {
   Plus, 
   Download, 
   X, 
-  ArrowRight 
+  ArrowRight,
+  BookOpen
 } from 'lucide-react';
 import { AppState, Task } from '../types';
 import { ActiveView } from './Sidebar';
@@ -27,6 +28,7 @@ interface CommandMenuProps {
   onOpenAiPlanner: () => void;
   onOpenFocusStudio: () => void;
   onSelectTask: (task: Task) => void;
+  onOpenManual?: () => void;
 }
 
 export const CommandMenu: React.FC<CommandMenuProps> = ({
@@ -37,7 +39,8 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
   onOpenNewTaskModal,
   onOpenAiPlanner,
   onOpenFocusStudio,
-  onSelectTask
+  onSelectTask,
+  onOpenManual
 }) => {
   const [query, setQuery] = useState('');
 
@@ -68,6 +71,7 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
   ).slice(0, 3);
 
   const navigationActions = [
+    { label: 'Open Instruction Manual (Enterprise, Startup, Personal)', icon: BookOpen, action: () => { if (onOpenManual) onOpenManual(); onClose(); } },
     { label: 'Go to AI Day Planner', icon: Sparkles, action: () => { onSelectView('planner'); onClose(); } },
     { label: 'Go to Tasks & Issues (Kanban/List/Matrix)', icon: CheckSquare, action: () => { onSelectView('tasks'); onClose(); } },
     { label: 'Go to Calendar & Time Blocking', icon: Calendar, action: () => { onSelectView('calendar'); onClose(); } },

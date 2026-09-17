@@ -7,6 +7,7 @@ import { TaskModal } from './components/TaskModal';
 import { AISchedulerModal } from './components/AISchedulerModal';
 import { CommandMenu } from './components/CommandMenu';
 import { AccessKeysModal } from './components/AccessKeysModal';
+import { InstructionManualModal } from './components/InstructionManualModal';
 
 // Views
 import { PlannerView } from './views/PlannerView';
@@ -30,6 +31,7 @@ export default function App() {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [accessKeysModalOpen, setAccessKeysModalOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -280,6 +282,7 @@ export default function App() {
         onResetData={handleResetData}
         onImportData={handleImportData}
         onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
+        onOpenManual={() => setManualOpen(true)}
         appState={appState}
         mobileSidebarOpen={mobileSidebarOpen}
         onToggleMobileSidebar={() => setMobileSidebarOpen(prev => !prev)}
@@ -309,6 +312,7 @@ export default function App() {
               onOpenAiModal={() => setAiModalOpen(true)}
               onSelectTask={handleOpenTaskForEditing}
               onOpenNewTaskModal={handleOpenNewTask}
+              onOpenManual={() => setManualOpen(true)}
             />
           )}
 
@@ -426,6 +430,17 @@ export default function App() {
         onOpenAiPlanner={() => setAiModalOpen(true)}
         onOpenFocusStudio={() => setActiveView('focus')}
         onSelectTask={handleOpenTaskForEditing}
+        onOpenManual={() => setManualOpen(true)}
+      />
+
+      {/* User Instruction Manual Modal (Enterprise Fleet, Startup Core, Personal Flow) */}
+      <InstructionManualModal
+        isOpen={manualOpen}
+        onClose={() => setManualOpen(false)}
+        workspaceMode={appState.workspaceMode}
+        onSelectWorkspaceMode={handleSelectWorkspaceMode}
+        onOpenAiPlanner={() => setAiModalOpen(true)}
+        onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
       />
     </div>
   );
