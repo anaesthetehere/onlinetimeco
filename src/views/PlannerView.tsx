@@ -311,7 +311,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                     <option value="review">Review</option>
                     <option value="admin">Admin</option>
                     <option value="break">Break / Lunch</option>
-                    {appState.customCategories?.map(c => (
+                    {Array.from(new Set(appState.customCategories || [])).map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>

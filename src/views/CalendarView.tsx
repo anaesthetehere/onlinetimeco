@@ -210,7 +210,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <option value="review">Reviews</option>
             <option value="admin">Admin</option>
             <option value="break">Breaks</option>
-            {appState.customCategories?.map(c => (
+            {Array.from(new Set(appState.customCategories || [])).map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>

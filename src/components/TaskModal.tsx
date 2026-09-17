@@ -661,7 +661,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
             {/* Category Quick Chips */}
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {['Deep Work', 'Architecture', 'Meeting', 'Review', 'Bugfix', 'Operations', ...customCategories].map(cat => {
+              {Array.from(new Set(['Deep Work', 'Architecture', 'Meeting', 'Review', 'Bugfix', 'Operations', ...(customCategories || [])])).map(cat => {
                 const isSelected = tags.includes(cat);
                 return (
                   <button

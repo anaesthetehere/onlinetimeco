@@ -620,9 +620,9 @@ function ensureUpgrades(state: AppState): AppState {
   const roomAccessKeys = state.roomAccessKeys && state.roomAccessKeys.length > 0 
     ? state.roomAccessKeys 
     : getInitialRoomKeys();
-  const customCategories = state.customCategories && state.customCategories.length > 0 
+  const customCategories = Array.from(new Set(state.customCategories && state.customCategories.length > 0 
     ? state.customCategories 
-    : ['Strategy', 'Deep Architecture', 'Customer Discovery', 'Design System', 'Operations'];
+    : ['Strategy', 'Deep Architecture', 'Customer Discovery', 'Design System', 'Operations']));
   const unlockedRoomIds = state.unlockedRoomIds || ['dept-eng', 'dept-prod', 'dept-mkt', 'dept-ops'];
   
   // Ensure team members have access keys
