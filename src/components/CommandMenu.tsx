@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, 
-  Sparkles, 
+  Clock, 
   CheckSquare, 
   Calendar, 
   Timer, 
@@ -26,7 +26,6 @@ interface CommandMenuProps {
   appState: AppState;
   onSelectView: (view: ActiveView) => void;
   onOpenNewTaskModal: () => void;
-  onOpenAiPlanner: () => void;
   onOpenFocusStudio: () => void;
   onSelectTask: (task: Task) => void;
   onOpenManual?: () => void;
@@ -39,7 +38,6 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
   appState,
   onSelectView,
   onOpenNewTaskModal,
-  onOpenAiPlanner,
   onOpenFocusStudio,
   onSelectTask,
   onOpenManual,
@@ -77,7 +75,7 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
     { label: 'Welcome & Role Selection Landing Page (Time-Co)', icon: HeartHandshake, action: () => { onSelectView('landing'); onClose(); } },
     { label: 'Open Instruction Manual & Button Guide', icon: BookOpen, action: () => { if (onOpenManual) onOpenManual(); onClose(); } },
     { label: 'Contact Us & Share Reviews (anweshasenapati4@gmail.com)', icon: Mail, action: () => { if (onOpenContactUs) onOpenContactUs(); onClose(); } },
-    { label: 'Go to AI Day Planner', icon: Sparkles, action: () => { onSelectView('planner'); onClose(); } },
+    { label: 'Go to Day Planner & Time Blocks', icon: Clock, action: () => { onSelectView('planner'); onClose(); } },
     { label: 'Go to Tasks & Issues (Kanban/List/Matrix)', icon: CheckSquare, action: () => { onSelectView('tasks'); onClose(); } },
     { label: 'Go to Calendar & Time Blocking', icon: Calendar, action: () => { onSelectView('calendar'); onClose(); } },
     { label: 'Open Pomodoro Focus Studio & Ambient Sound', icon: Timer, action: () => { onOpenFocusStudio(); onClose(); } },
@@ -125,14 +123,14 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
               <span className="text-[10px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">C</span>
             </button>
             <button
-              onClick={() => { onOpenAiPlanner(); onClose(); }}
+              onClick={() => { onSelectView('planner'); onClose(); }}
               className="w-full text-left px-2.5 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between group cursor-pointer transition-colors"
             >
               <div className="flex items-center gap-2.5">
-                <Sparkles className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                <span>Run AI Autopilot Day Scheduler</span>
+                <Calendar className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                <span>Open Day Planner & Time Blocks</span>
               </div>
-              <span className="text-[10px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">S</span>
+              <span className="text-[10px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200">P</span>
             </button>
           </div>
 

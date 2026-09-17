@@ -16,7 +16,6 @@ import {
   Calendar, 
   Play, 
   CheckSquare, 
-  Sparkles, 
   Sliders, 
   CheckCircle2, 
   AlertTriangle, 
@@ -35,7 +34,6 @@ import {
 import { WorkspaceMode } from '../types';
 
 interface RolePlaybookProps {
-  onOpenAiPlanner?: () => void;
   onOpenAccessKeysModal?: () => void;
   onNavigateView?: (view: string) => void;
 }
@@ -313,7 +311,6 @@ export const EnterprisePlaybookGuide: React.FC<RolePlaybookProps> = ({
  * Startup Core Detailed Button-by-Button Guide & How-To Manual
  */
 export const StartupPlaybookGuide: React.FC<RolePlaybookProps> = ({
-  onOpenAiPlanner,
   onOpenAccessKeysModal
 }) => {
   return (
@@ -334,22 +331,22 @@ export const StartupPlaybookGuide: React.FC<RolePlaybookProps> = ({
       <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xs">
         <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-              <Sparkles className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+              <Clock className="w-4 h-4" />
             </div>
             <div>
               <h4 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                <span>"AI Schedule Planner" Button (`Sparkles` icon)</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">
-                  Motion Constraint Solver
+                <span>"Day Planner" Navigation & Time-Blocking</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
+                  Capacity & Time-Blocking
                 </span>
               </h4>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Location: <strong>Top Navigation Bar</strong> and <strong>AI Day Planner</strong> view header
+                Location: <strong>Left Sidebar</strong> and <strong>Day Planner</strong> view header
               </p>
             </div>
           </div>
-          <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0">
+          <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shrink-0">
             Startup Significance: High
           </span>
         </div>
@@ -360,21 +357,19 @@ export const StartupPlaybookGuide: React.FC<RolePlaybookProps> = ({
               Significance in Startup Level:
             </strong>
             <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-              Startups suffer from constant interruptions: unplanned standups, customer demos, and code reviews. This button triggers the automatic constraint solver that mathematically slots unscheduled sprint backlog tasks into uninterrupted blocks around your fixed calendar events.
+              Startups suffer from constant interruptions: unplanned standups, customer demos, and code reviews. Day planning lets you slot sprint backlog tasks into uninterrupted blocks around your fixed schedule with clear capacity meters.
             </p>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 space-y-2">
             <span className="font-bold text-[11px] uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              Step-by-Step How-To: Running the AI Auto-Schedule Solver
+              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              Step-by-Step How-To: Setting Up Daily Time Blocks
             </span>
             <ol className="space-y-1.5 text-slate-600 dark:text-slate-400 pl-4 list-decimal">
-              <li>Click <strong>AI Schedule Planner</strong> (Sparkles icon) in the top navbar.</li>
+              <li>Click <strong>Day Planner</strong> in the sidebar.</li>
               <li>Review the pending backlog tasks list and priority flags (Urgent, High, Medium).</li>
-              <li>Adjust the <strong>Buffer Time slider</strong> (e.g. 10m or 15m) between deep-work sessions.</li>
-              <li>Click <strong>"Auto-Schedule Open Tasks"</strong>.</li>
-              <li>The solver checks for calendar conflicts and automatically places color-coded time blocks on your day timeline, preserving continuous focus windows.</li>
+              <li>Add time blocks for your peak deep work windows with realistic buffer times.</li>
             </ol>
           </div>
         </div>
@@ -796,25 +791,25 @@ export const RoleButtonsDirectory: React.FC<{
           </div>
         )}
 
-        {/* STARTUP: AI Schedule Planner */}
+        {/* STARTUP: Day Planner */}
         {(filter === 'all' || filter === 'startup') && (
           <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
             <div className="flex items-start gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                <Sparkles className="w-3.5 h-3.5" />
+              <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <Clock className="w-3.5 h-3.5" />
               </div>
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <strong className="text-slate-900 dark:text-white font-semibold">AI Schedule Planner (Sparkles Icon)</strong>
+                  <strong className="text-slate-900 dark:text-white font-semibold">Day Planner & Time Blocks</strong>
                   <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400">
                     Startup Level
                   </span>
                 </div>
                 <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-                  <strong>Location:</strong> Top Navigation Bar & Day Planner header.
+                  <strong>Location:</strong> Sidebar navigation & Day Planner header.
                 </p>
                 <p className="text-slate-600 dark:text-slate-300 text-[11px]">
-                  <strong>Significance & How-To:</strong> Automatically solves task constraints and arranges unscheduled backlog items into open calendar slots with customized buffer times.
+                  <strong>Significance & How-To:</strong> Organizes daily capacity and arranges sprint backlog items into focused time slots with customized buffer times.
                 </p>
               </div>
             </div>

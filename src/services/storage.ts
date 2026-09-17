@@ -13,7 +13,75 @@ export const getTodayString = (offsetDays = 0): string => {
   return d.toISOString().split('T')[0];
 };
 
+export const getFreshInitialData = (): AppState => {
+  return {
+    tasks: [],
+    projects: [],
+    departments: [
+      {
+        id: 'dept-gen',
+        name: 'General Planning & Projects',
+        code: 'GEN',
+        leadName: 'Workspace Lead',
+        color: '#6366f1',
+        headcount: 1,
+        quarterlyBudget: 0,
+        quarterlySpent: 0,
+        activeProjectsCount: 0,
+        okrs: []
+      }
+    ],
+    teamMembers: [
+      {
+        id: 'tm-1',
+        name: 'Workspace Lead',
+        role: 'Planning Lead',
+        email: 'local@workspace',
+        departmentId: 'dept-gen',
+        avatar: 'WL',
+        capacityHoursPerWeek: 40,
+        currentWorkloadHours: 0,
+        isOnline: true,
+        accessKey: 'TIME-ROOM-Lead-1a2b-3c4d'
+      }
+    ],
+    timeBlocks: [],
+    focusSessions: [],
+    risks: [],
+    habits: [],
+    reflections: [],
+    auditLogs: [
+      {
+        id: `audit-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        action: 'WORKSPACE_INITIALIZED',
+        entityType: 'project' as const,
+        details: 'TIME-CO sovereign private workspace initialized. 100% private client storage, zero server database.'
+      }
+    ],
+    workspaceMode: 'personal',
+    roomAccessKeys: [],
+    unlockedRoomIds: ['dept-gen'],
+    activeAccessKey: 'TIME-ROOM-Lead-1a2b-3c4d',
+    customCategories: ['To-Do', 'Projects', 'Strategy', 'Deep Work', 'Personal'],
+    userProfile: {
+      name: 'Workspace Lead',
+      role: 'Planning Lead',
+      workStartHour: 9,
+      workEndHour: 18,
+      pomodoroLength: 25,
+      shortBreakLength: 5,
+      longBreakLength: 15,
+      customAttentionSpanMinutes: 25
+    }
+  };
+};
+
 export const getInitialData = (): AppState => {
+  return getFreshInitialData();
+};
+
+export const getDemoInitialData = (): AppState => {
   const today = getTodayString(0);
   const tomorrow = getTodayString(1);
   const dayAfter = getTodayString(2);
@@ -64,10 +132,10 @@ export const getInitialData = (): AppState => {
       okrs: [
         {
           id: 'okr-prod-1',
-          objective: 'Launch AI Autopilot Calendar V2 for enterprise fleets',
+          objective: 'Deliver sovereign Day Planner & Task Matrix V2',
           progress: 75,
           keyResults: [
-            { id: 'kr-4', title: 'Beta test with 50 pilot enterprise accounts', current: 38, target: 50, unit: 'orgs' },
+            { id: 'kr-4', title: 'Beta test with 50 pilot user teams', current: 38, target: 50, unit: 'orgs' },
             { id: 'kr-5', title: 'Increase weekly active time-blockers by 40%', current: 28, target: 40, unit: '%' }
           ]
         }
@@ -86,11 +154,11 @@ export const getInitialData = (): AppState => {
       okrs: [
         {
           id: 'okr-mkt-1',
-          objective: 'Drive organic pipeline expansion for AI Productivity suite',
+          objective: 'Drive organic community adoption for sovereign planning workspace',
           progress: 68,
           keyResults: [
             { id: 'kr-6', title: 'Publish 8 high-intent technical case studies', current: 6, target: 8, unit: 'studies' },
-            { id: 'kr-7', title: 'Achieve 150,000 monthly active demo runs', current: 112000, target: 150000, unit: 'users' }
+            { id: 'kr-7', title: 'Achieve 150,000 monthly active workflow runs', current: 112000, target: 150000, unit: 'users' }
           ]
         }
       ]
@@ -371,7 +439,6 @@ export const getInitialData = (): AppState => {
       endTime: '11:30',
       category: 'deep_work',
       color: '#6366f1',
-      isAiScheduled: true,
       notes: 'Peak morning cognitive energy slot.'
     },
     {
@@ -382,8 +449,7 @@ export const getInitialData = (): AppState => {
       startTime: '11:30',
       endTime: '12:30',
       category: 'deep_work',
-      color: '#3b82f6',
-      isAiScheduled: true
+      color: '#3b82f6'
     },
     {
       id: 'tb-lunch',
@@ -403,8 +469,7 @@ export const getInitialData = (): AppState => {
       startTime: '14:00',
       endTime: '15:00',
       category: 'review',
-      color: '#f59e0b',
-      isAiScheduled: true
+      color: '#f59e0b'
     },
     {
       id: 'tb-4',
@@ -414,8 +479,7 @@ export const getInitialData = (): AppState => {
       startTime: '15:30',
       endTime: '17:00',
       category: 'deep_work',
-      color: '#8b5cf6',
-      isAiScheduled: true
+      color: '#8b5cf6'
     },
     {
       id: 'tb-tm-1',
@@ -546,9 +610,9 @@ export const getInitialData = (): AppState => {
     {
       id: 'audit-1',
       timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
-      action: 'AI_SCHEDULE_OPTIMIZATION',
+      action: 'SCHEDULE_OPTIMIZATION',
       entityType: 'schedule' as const,
-      details: 'AI Autonomous Scheduler packed 4 tasks into open calendar gaps, saving an estimated 42 minutes of context switching.'
+      details: 'Time-block schedule organized with 4 focus slots aligned to daily cognitive capacity.'
     },
     {
       id: 'audit-2',
@@ -616,26 +680,30 @@ function openDatabase(): Promise<IDBDatabase> {
 
 // Upgrade helper to ensure backward compatibility with earlier saves
 function ensureUpgrades(state: AppState): AppState {
-  const initial = getInitialData();
-  const roomAccessKeys = state.roomAccessKeys && state.roomAccessKeys.length > 0 
-    ? state.roomAccessKeys 
-    : getInitialRoomKeys();
+  const roomAccessKeys = state.roomAccessKeys || [];
   const customCategories = Array.from(new Set(state.customCategories && state.customCategories.length > 0 
     ? state.customCategories 
-    : ['Strategy', 'Deep Architecture', 'Customer Discovery', 'Design System', 'Operations']));
-  const unlockedRoomIds = state.unlockedRoomIds || ['dept-eng', 'dept-prod', 'dept-mkt', 'dept-ops'];
+    : ['To-Do', 'Projects', 'Strategy', 'Deep Work', 'Personal']));
+  const unlockedRoomIds = state.unlockedRoomIds || ['dept-gen'];
   
   // Ensure team members have access keys
-  const teamMembers = state.teamMembers.map(tm => {
+  const teamMembers = (state.teamMembers || []).map(tm => {
     if (!tm.accessKey) {
-      const match = initial.teamMembers.find(m => m.id === tm.id);
-      return { ...tm, accessKey: match?.accessKey || `TIME-ROOM-${tm.name.replace(/\s+/g, '')}-7a2b-8c9d` };
+      return { ...tm, accessKey: `TIME-ROOM-${tm.name.replace(/\s+/g, '')}-7a2b` };
     }
     return tm;
   });
 
   return {
     ...state,
+    tasks: state.tasks || [],
+    projects: state.projects || [],
+    timeBlocks: state.timeBlocks || [],
+    focusSessions: state.focusSessions || [],
+    risks: state.risks || [],
+    habits: state.habits || [],
+    reflections: state.reflections || [],
+    auditLogs: state.auditLogs || [],
     roomAccessKeys,
     customCategories,
     unlockedRoomIds,
@@ -704,6 +772,43 @@ export async function saveAppState(state: AppState): Promise<void> {
   } catch (err) {
     console.warn('IndexedDB write failed:', err);
   }
+}
+
+// Clear all data completely and return clean fresh workspace
+export async function clearAllStorage(): Promise<AppState> {
+  const fresh = getFreshInitialData();
+  try {
+    localStorage.removeItem(LOCAL_STORAGE_FALLBACK_KEY);
+    localStorage.setItem(LOCAL_STORAGE_FALLBACK_KEY, JSON.stringify(fresh));
+  } catch (err) {
+    console.warn('LocalStorage clear failed:', err);
+  }
+
+  try {
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const clearReq = store.clear();
+      clearReq.onsuccess = () => {
+        const putReq = store.put(fresh, 'current');
+        putReq.onsuccess = () => resolve();
+        putReq.onerror = () => reject(putReq.error);
+      };
+      clearReq.onerror = () => reject(clearReq.error);
+    });
+  } catch (err) {
+    console.warn('IndexedDB clear failed:', err);
+  }
+
+  return fresh;
+}
+
+// Load sample demonstration data
+export async function loadSampleDemoData(): Promise<AppState> {
+  const demo = getDemoInitialData();
+  await saveAppState(demo);
+  return demo;
 }
 
 // Export database to JSON file

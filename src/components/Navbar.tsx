@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Sparkles, 
+  Plus,
   Search, 
   Clock, 
   Database, 
@@ -9,21 +9,28 @@ import {
   RotateCcw, 
   Layers, 
   Play, 
-  CheckCircle2,
-  FileSpreadsheet,
-  Cpu,
-  ChevronDown,
-  Sun,
-  Moon,
-  Menu,
-  X,
-  Shield,
-  Key,
-  BookOpen,
-  Mail,
-  HeartHandshake
+  CheckCircle2, 
+  FileSpreadsheet, 
+  Cpu, 
+  ChevronDown, 
+  Sun, 
+  Moon, 
+  Menu, 
+  X, 
+  Shield, 
+  Key, 
+  BookOpen, 
+  Mail, 
+  HeartHandshake,
+  MoreVertical,
+  Calendar,
+  CheckSquare,
+  Timer,
+  Briefcase,
+  Trash2
 } from 'lucide-react';
 import { WorkspaceMode, AppState } from '../types';
+import { ActiveView } from './Sidebar';
 import { exportStateAsJSON, exportTasksAsCSV } from '../services/storage';
 import { useTheme } from '../context/ThemeContext';
 
@@ -31,9 +38,9 @@ interface NavbarProps {
   workspaceMode: WorkspaceMode;
   onSelectWorkspaceMode: (mode: WorkspaceMode) => void;
   onOpenCommandMenu: () => void;
-  onOpenAiPlanner: () => void;
   onOpenFocusStudio: () => void;
   onResetData: () => void;
+  onStartFresh?: () => void;
   onImportData: (data: AppState) => void;
   onOpenAccessKeysModal?: () => void;
   onOpenManual?: () => void;
@@ -43,15 +50,18 @@ interface NavbarProps {
   appState: AppState;
   mobileSidebarOpen?: boolean;
   onToggleMobileSidebar?: () => void;
+  activeView?: ActiveView;
+  onSelectView?: (view: ActiveView) => void;
+  onOpenNewTaskModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   workspaceMode,
   onSelectWorkspaceMode,
   onOpenCommandMenu,
-  onOpenAiPlanner,
   onOpenFocusStudio,
   onResetData,
+  onStartFresh,
   onImportData,
   onOpenAccessKeysModal,
   onOpenManual,
@@ -60,30 +70,35 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeFocusSession,
   appState,
   mobileSidebarOpen,
-  onToggleMobileSidebar
+  onToggleMobileSidebar,
+  activeView = 'landing',
+  onSelectView,
+  onOpenNewTaskModal
 }) => {
   const { theme, toggleTheme } = useTheme();
-  const [dataDropdownOpen, setDataDropdownOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [confirmDemoOpen, setConfirmDemoOpen] = useState(false);
 
   const workspaceRef = useRef<HTMLDivElement>(null);
-  const dataDropdownRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  // Automatically dismiss dropdowns when clicking outside anywhere on the site or pressing Esc
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (workspaceRef.current && !workspaceRef.current.contains(event.target as Node)) {
         setWorkspaceMenuOpen(false);
       }
-      if (dataDropdownRef.current && !dataDropdownRef.current.contains(event.target as Node)) {
-        setDataDropdownOpen(false);
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setMoreMenuOpen(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setWorkspaceMenuOpen(false);
-        setDataDropdownOpen(false);
+        setMoreMenuOpen(false);
       }
     };
 
@@ -106,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed.tasks && parsed.projects) {
           onImportData(parsed);
-          setDataDropdownOpen(false);
+          setMoreMenuOpen(false);
         }
       } catch (err) {
         console.error('Failed to parse import file', err);
@@ -123,15 +138,27 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  // Primary top navigation links for seamless, instant travel between pages
+  const topTabs = [
+    { id: 'landing' as ActiveView, label: 'Overview' },
+    { id: 'planner' as ActiveView, label: 'Day Planner' },
+    { id: 'tasks' as ActiveView, label: 'Tasks' },
+    { id: 'calendar' as ActiveView, label: 'Calendar' },
+    { id: 'focus' as ActiveView, label: 'Focus' },
+    { id: 'projects' as ActiveView, label: 'Projects' },
+    { id: 'personal' as ActiveView, label: 'Habits' }
+  ];
+
   return (
-    <header className="h-14 border-b border-slate-200 dark:border-slate-800/80 bg-white/95 dark:bg-slate-950/90 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-30 sticky top-0 transition-colors duration-150">
-      {/* Left: Mobile Drawer Button & Brand & Workspace Mode */}
-      <div className="flex items-center gap-2 sm:gap-4">
+    <header className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between z-30 sticky top-0 transition-colors">
+      
+      {/* Left: Hamburger & Brand & Workspace Mode */}
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Mobile Hamburger Menu Toggle */}
         <button
           id="mobile-sidebar-toggle-btn"
           onClick={onToggleMobileSidebar}
-          className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
+          className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
           aria-label="Toggle navigation menu"
         >
           {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -140,306 +167,334 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Brand */}
         <button
           onClick={onNavigateHome}
-          className="flex items-center gap-2 sm:gap-2.5 text-left group cursor-pointer focus:outline-none"
-          title="Return to Time-Co Welcome Landing Page"
+          className="flex items-center gap-2 text-left group cursor-pointer focus:outline-none"
+          title="Return to Time-Co Overview"
         >
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-md shadow-indigo-500/20 ring-1 ring-black/5 dark:ring-white/20 shrink-0 group-hover:scale-105 transition-transform">
-            <Cpu className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-sm text-white shrink-0 group-hover:scale-105 transition-transform">
+            <Cpu className="w-4 h-4" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold tracking-tight text-slate-900 dark:text-white text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                TIME<span className="text-indigo-600 dark:text-indigo-400">-CO</span>
-              </span>
-              <span className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium rounded bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
-                OS v2.4
-              </span>
-            </div>
+            <span className="font-extrabold tracking-tight text-slate-900 dark:text-white text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+              TIME<span className="text-indigo-600 dark:text-indigo-400">-CO</span>
+            </span>
           </div>
         </button>
 
-        <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-800" />
-
         {/* Workspace Dropdown */}
-        <div className="relative" ref={workspaceRef}>
+        <div className="relative ml-1" ref={workspaceRef}>
           <button
             id="workspace-switcher-btn"
             onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
-            className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-2.5 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
           >
             <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span className="hidden md:inline">{getWorkspaceTitle(workspaceMode)}</span>
-            <span className="md:hidden text-[11px] capitalize">{workspaceMode}</span>
+            <span className="hidden sm:inline">{getWorkspaceTitle(workspaceMode)}</span>
+            <span className="sm:hidden text-[11px] capitalize">{workspaceMode}</span>
             <ChevronDown className="w-3 h-3 text-slate-400" />
           </button>
 
           {workspaceMenuOpen && (
-            <div className="absolute left-0 mt-1.5 w-60 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Select Workspace Mode
+            <div className="absolute left-0 mt-1.5 w-60 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Select Workspace Tier
               </div>
               <button
                 onClick={() => { onSelectWorkspaceMode('enterprise'); setWorkspaceMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800/80 ${
-                  workspaceMode === 'enterprise' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-700 dark:text-slate-300'
+                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                  workspaceMode === 'enterprise' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/40' : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
                 <div>
                   <div className="font-semibold">Enterprise Fleet</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">All Depts + Room RBAC Keys</div>
+                  <div className="text-[10px] text-slate-500">Depts, OKRs & Room Keys</div>
                 </div>
                 {workspaceMode === 'enterprise' && <CheckCircle2 className="w-3.5 h-3.5" />}
               </button>
               <button
                 onClick={() => { onSelectWorkspaceMode('startup'); setWorkspaceMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800/80 ${
-                  workspaceMode === 'startup' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-700 dark:text-slate-300'
+                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                  workspaceMode === 'startup' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/40' : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
                 <div>
                   <div className="font-semibold">Startup Core</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">Shared Sprint Key</div>
+                  <div className="text-[10px] text-slate-500">Sprint Boards & Tokens</div>
                 </div>
                 {workspaceMode === 'startup' && <CheckCircle2 className="w-3.5 h-3.5" />}
               </button>
               <button
                 onClick={() => { onSelectWorkspaceMode('personal'); setWorkspaceMenuOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800/80 ${
-                  workspaceMode === 'personal' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-500/10' : 'text-slate-700 dark:text-slate-300'
+                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                  workspaceMode === 'personal' ? 'text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-950/40' : 'text-slate-700 dark:text-slate-300'
                 }`}
               >
                 <div>
                   <div className="font-semibold">Personal Flow</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">Full Rights & Solo Autonomy</div>
+                  <div className="text-[10px] text-slate-500">Solo Focus & Habits</div>
                 </div>
                 {workspaceMode === 'personal' && <CheckCircle2 className="w-3.5 h-3.5" />}
               </button>
-
-              <div className="border-t border-slate-100 dark:border-slate-800/80 my-1" />
-              {onNavigateHome && (
-                <button
-                  onClick={() => { setWorkspaceMenuOpen(false); onNavigateHome(); }}
-                  className="w-full text-left px-3 py-2 text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2 font-medium"
-                >
-                  <HeartHandshake className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Welcome Landing Page</span>
-                </button>
-              )}
-              {onOpenManual && (
-                <button
-                  id="dropdown-manual-btn"
-                  onClick={() => { setWorkspaceMenuOpen(false); onOpenManual(); }}
-                  className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between font-medium"
-                >
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                    <span>Instruction Manual</span>
-                  </div>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">Free</span>
-                </button>
-              )}
-              {onOpenContactUs && (
-                <button
-                  onClick={() => { setWorkspaceMenuOpen(false); onOpenContactUs(); }}
-                  className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 font-medium"
-                >
-                  <Mail className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                  <span>Contact Us & Reviews</span>
-                </button>
-              )}
-              {onOpenAccessKeysModal && (
-                <button
-                  onClick={() => { setWorkspaceMenuOpen(false); onOpenAccessKeysModal(); }}
-                  className="w-full text-left px-3 py-2 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 flex items-center gap-2 font-medium"
-                >
-                  <Key className="w-3.5 h-3.5" />
-                  <span>Manage Access & Room Keys</span>
-                </button>
-              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Middle: Command Search Bar (Desktop) */}
-      <div className="flex-1 max-w-md mx-4 hidden lg:block">
+      {/* Middle: Seamless Top Navigation Tabs (Desktop & Tablet) */}
+      {onSelectView && (
+        <nav className="hidden md:flex items-center gap-1 bg-slate-100/80 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800/80">
+          {topTabs.map((tab) => {
+            const isActive = activeView === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onSelectView(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      )}
+
+      {/* Right Controls: Unified, uncluttered layout */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Quick Search */}
         <button
           id="global-search-btn"
           onClick={onOpenCommandMenu}
-          className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 hover:border-indigo-400 dark:hover:border-slate-700 hover:text-slate-800 dark:hover:text-slate-200 transition-all shadow-inner"
-        >
-          <div className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-slate-400" />
-            <span className="truncate">Search tasks, projects, schedules, risks...</span>
-          </div>
-          <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded border border-slate-300 dark:border-slate-700 shadow-xs">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
-
-      {/* Right Controls */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5">
-        {/* Mobile search trigger */}
-        <button
-          id="mobile-search-btn"
-          onClick={onOpenCommandMenu}
-          className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors"
+          className="p-2 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
           title="Search (⌘K)"
-          aria-label="Search"
         >
-          <Search className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <Search className="w-4 h-4" />
         </button>
 
-        {/* Active Focus Pill */}
-        {activeFocusSession?.isRunning ? (
+        {/* Focus Timer active pill */}
+        {activeFocusSession?.isRunning && (
           <button
             onClick={onOpenFocusStudio}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium animate-pulse"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-semibold animate-pulse"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-            <span className="text-[11px] sm:text-xs">Focus: {activeFocusSession.timeLeft}</span>
-          </button>
-        ) : (
-          <button
-            id="open-focus-btn"
-            onClick={onOpenFocusStudio}
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300 transition-colors"
-            title="Open Pomodoro Focus Studio"
-          >
-            <Play className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Focus Mode</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>{activeFocusSession.timeLeft}</span>
           </button>
         )}
 
-        {/* AI Autopilot Button */}
-        <button
-          id="open-ai-planner-btn"
-          onClick={onOpenAiPlanner}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs font-medium shadow-sm shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-indigo-200 animate-spin" style={{ animationDuration: '6s' }} />
-          <span className="hidden sm:inline">AI Schedule Planner</span>
-          <span className="sm:hidden">AI Planner</span>
-        </button>
-
-        {/* User Instruction Manual Button */}
-        {onOpenManual && (
+        {/* Quick Action: New Task or Start Planning */}
+        {onOpenNewTaskModal && activeView !== 'landing' ? (
           <button
-            id="navbar-manual-btn"
-            onClick={onOpenManual}
-            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium transition-colors"
-            title="Instruction Manual & Button Guide (Enterprise, Startup & Personal Levels)"
-            aria-label="User Instruction Manual"
+            id="navbar-new-task-btn"
+            onClick={onOpenNewTaskModal}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span className="hidden md:inline">Manual</span>
-            <span className="hidden lg:inline-block px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-              Free
-            </span>
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">New Task</span>
+            <span className="sm:hidden">Task</span>
           </button>
-        )}
-
-        {/* Contact Us Button (placed AFTER Manual in navigation bar as requested) */}
-        {onOpenContactUs && (
+        ) : activeView === 'landing' && onSelectView ? (
           <button
-            id="navbar-contact-btn"
-            onClick={onOpenContactUs}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40 dark:hover:from-amber-900/50 dark:hover:to-orange-900/50 border border-amber-300/90 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs font-semibold shadow-2xs transition-all hover:scale-[1.02] active:scale-[0.98]"
-            title="Contact Us: Share Reviews, Feedback, Feature Enhancements, Bugs or Help (anweshasenapati4@gmail.com)"
-            aria-label="Contact Us"
+            id="navbar-start-btn"
+            onClick={() => onSelectView('tasks')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            <Mail className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-            <span>Contact Us</span>
+            <span>Start Planning</span>
           </button>
-        )}
+        ) : null}
 
-        {/* Access Control & Room Keys Button */}
-        {onOpenAccessKeysModal && (
-          <button
-            id="access-keys-btn"
-            onClick={onOpenAccessKeysModal}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors"
-            title="Manage Access Keys & Room Permissions"
-            aria-label="Access Keys and Room Permissions"
-          >
-            <Shield className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span className="hidden xl:inline text-[11px] font-mono capitalize">{workspaceMode} Keys</span>
-          </button>
-        )}
-
-        {/* Theme Toggle Button (Dark / Light) */}
+        {/* Theme Toggle Button */}
         <button
           id="theme-toggle-btn"
           onClick={toggleTheme}
-          className="p-2 rounded-md bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
+          className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer"
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           aria-label="Toggle theme"
         >
           {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400 transition-transform rotate-0 hover:rotate-45" />
+            <Sun className="w-4 h-4 text-amber-400" />
           ) : (
-            <Moon className="w-4 h-4 text-indigo-600 transition-transform -rotate-12 hover:rotate-0" />
+            <Moon className="w-4 h-4 text-indigo-600" />
           )}
         </button>
 
-        {/* Local Storage & Export Controls */}
-        <div className="relative" ref={dataDropdownRef}>
+        {/* More Actions Unified Dropdown (Unclutters Manual, Contact Us, Access Keys, Backup) */}
+        <div className="relative" ref={moreMenuRef}>
           <button
-            id="data-sync-menu-btn"
-            onClick={() => setDataDropdownOpen(!dataDropdownOpen)}
-            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 transition-colors"
-            title="Local Data & Sync Management"
+            id="more-actions-menu-btn"
+            onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer"
+            title="More Options & Utilities"
+            aria-label="More Options"
           >
-            <Database className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
-            <span className="hidden xl:inline text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">100% Local</span>
-            <ChevronDown className="w-3 h-3 text-slate-400" />
+            <MoreVertical className="w-4 h-4" />
           </button>
 
-          {dataDropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-64 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
-              <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800/80">
-                <div className="font-semibold text-slate-800 dark:text-slate-200">Local Persistence Engine</div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                  Stored securely in browser IndexedDB. Zero external login required.
-                </div>
+          {moreMenuOpen && (
+            <div className="absolute right-0 mt-1.5 w-64 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+              <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Support & Guides
               </div>
+
+              {onOpenManual && (
+                <button
+                  id="dropdown-manual-btn"
+                  onClick={() => { setMoreMenuOpen(false); onOpenManual(); }}
+                  className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between font-medium"
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Instruction Manual & Guide</span>
+                  </div>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">Free</span>
+                </button>
+              )}
+
+              {onOpenContactUs && (
+                <button
+                  onClick={() => { setMoreMenuOpen(false); onOpenContactUs(); }}
+                  className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 font-medium"
+                >
+                  <Mail className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>Contact Us & Reviews</span>
+                </button>
+              )}
+
+              {onOpenAccessKeysModal && (
+                <button
+                  onClick={() => { setMoreMenuOpen(false); onOpenAccessKeysModal(); }}
+                  className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 font-medium"
+                >
+                  <Key className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span>Cryptographic Room Keys</span>
+                </button>
+              )}
+
+              <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+              <div className="px-3 py-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Local Data Management
+              </div>
+
               <button
-                onClick={() => { exportStateAsJSON(appState); setDataDropdownOpen(false); }}
+                onClick={() => { exportStateAsJSON(appState); setMoreMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
               >
-                <Download className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                <Download className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>Backup Workspace (JSON)</span>
               </button>
+
               <button
-                onClick={() => { exportTasksAsCSV(appState.tasks); setDataDropdownOpen(false); }}
+                onClick={() => { exportTasksAsCSV(appState.tasks); setMoreMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Export Tasks as CSV</span>
               </button>
+
               <label className="w-full text-left px-3 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer">
-                <Upload className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                <Upload className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                 <span>Restore Backup (JSON)</span>
                 <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
               </label>
-              <div className="border-t border-slate-100 dark:border-slate-800/80 my-1" />
+
+              <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+              {onStartFresh && (
+                <button
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    setConfirmClearOpen(true);
+                  }}
+                  className="w-full text-left px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 font-medium"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Clear All & Start Fresh</span>
+                </button>
+              )}
               <button
                 onClick={() => {
-                  if (confirm('Reset to initial sample enterprise workspace data?')) {
-                    onResetData();
-                    setDataDropdownOpen(false);
-                  }
+                  setMoreMenuOpen(false);
+                  setConfirmDemoOpen(true);
                 }}
-                className="w-full text-left px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 flex items-center gap-2"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset to Default Demo Data</span>
+                <RotateCcw className="w-4 h-4" />
+                <span>Load Sample Demo Data</span>
               </button>
             </div>
           )}
         </div>
+
       </div>
+
+      {/* In-App Confirmation Modal: Clear Workspace */}
+      {confirmClearOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-100">
+            <div className="flex items-center gap-2.5 text-rose-600 dark:text-rose-400 font-bold text-sm">
+              <Trash2 className="w-5 h-5" />
+              <span>Clear Entire Workspace?</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              This will permanently remove all tasks, projects, time blocks, and personal notes, resetting your workspace to a completely clean slate.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmClearOpen(false)}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmClearOpen(false);
+                  if (onStartFresh) onStartFresh();
+                }}
+                className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-sm cursor-pointer transition-colors"
+              >
+                Yes, Clear Everything
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Confirmation Modal: Load Demo Data */}
+      {confirmDemoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 max-w-sm w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-100">
+            <div className="flex items-center gap-2.5 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+              <RotateCcw className="w-5 h-5" />
+              <span>Load Sample Demo Data?</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              This populates the workspace with sample projects, sprint tasks, and time blocks so you can explore the features.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDemoOpen(false)}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmDemoOpen(false);
+                  onResetData();
+                }}
+                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm cursor-pointer transition-colors"
+              >
+                Load Demo Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Flame,
   Clock,
-  Sparkles,
   X,
   Sun,
   Moon
@@ -70,23 +69,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'planner' as ActiveView,
-      label: 'AI Day Planner',
-      icon: Sparkles,
-      badge: 'Smart',
+      label: 'Day Planner',
+      icon: Clock,
+      badge: appState.timeBlocks.length > 0 ? `${appState.timeBlocks.length}` : undefined,
       badgeColor: 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30'
     },
     {
       id: 'tasks' as ActiveView,
       label: 'Tasks & Issues',
       icon: CheckSquare,
-      badge: openTasksCount.toString(),
+      badge: openTasksCount > 0 ? openTasksCount.toString() : undefined,
       badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
     },
     {
       id: 'calendar' as ActiveView,
       label: 'Calendar & Time Blocks',
       icon: Calendar,
-      badge: `${appState.timeBlocks.length}`,
+      badge: appState.timeBlocks.length > 0 ? `${appState.timeBlocks.length}` : undefined,
       badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
     },
     {
@@ -100,14 +99,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'projects' as ActiveView,
       label: 'Projects & Roadmap',
       icon: Briefcase,
-      badge: `${appState.projects.length}`,
+      badge: appState.projects.length > 0 ? `${appState.projects.length}` : undefined,
       badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
     },
     {
       id: 'enterprise' as ActiveView,
       label: 'Departments & OKRs',
       icon: Building2,
-      badge: `${appState.departments.length} Depts`,
+      badge: appState.departments.length > 0 ? `${appState.departments.length} Depts` : undefined,
       badgeColor: 'bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30'
     },
     {
@@ -126,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'personal' as ActiveView,
       label: 'Habits & Reflection',
       icon: HeartHandshake,
-      badge: todayHabitsPending > 0 ? `${todayHabitsPending} Due` : 'Done',
+      badge: appState.habits.length === 0 ? undefined : (todayHabitsPending > 0 ? `${todayHabitsPending} Due` : 'Done'),
       badgeColor: todayHabitsPending > 0 
         ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30' 
         : 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30'
@@ -203,26 +202,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
 
         {/* Department Quick List */}
-        <div className="pt-5 px-2 pb-1.5 text-[11px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-400 font-semibold flex items-center justify-between">
-          <span>Departments</span>
-          <span className="text-[10px] text-slate-400">4</span>
-        </div>
+        {appState.departments.length > 0 && (
+          <>
+            <div className="pt-5 px-2 pb-1.5 text-[11px] font-mono uppercase tracking-wider text-slate-400 dark:text-slate-400 font-semibold flex items-center justify-between">
+              <span>Departments</span>
+              <span className="text-[10px] text-slate-400">{appState.departments.length}</span>
+            </div>
 
-        <div className="space-y-0.5">
-          {appState.departments.map(dept => (
-            <button
-              key={dept.id}
-              onClick={() => handleItemClick('enterprise')}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dept.color }} />
-                <span className="truncate max-w-[130px]">{dept.name}</span>
-              </div>
-              <span className="text-[11px] font-mono text-slate-400">{dept.code}</span>
-            </button>
-          ))}
-        </div>
+            <div className="space-y-0.5">
+              {appState.departments.map(dept => (
+                <button
+                  key={dept.id}
+                  onClick={() => handleItemClick('enterprise')}
+                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: dept.color }} />
+                    <span className="truncate max-w-[130px]">{dept.name}</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-400">{dept.code}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Offline & Resiliency Footer Banner + Theme Switcher */}

@@ -16,7 +16,6 @@ import {
   MoreHorizontal, 
   Trash2, 
   Calendar,
-  Sparkles,
   ArrowRight
 } from 'lucide-react';
 import { AppState, Task, TaskStatus, Priority, EisenhowerQuadrant } from '../types';

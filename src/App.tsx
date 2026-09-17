@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { AppState, Task, TimeBlock, Project, FocusSession, RiskItem, Habit, DailyReflection, WorkspaceMode, RoomAccessKey, TeamMember, Department } from './types';
-import { loadAppState, saveAppState, getInitialData } from './services/storage';
+import { loadAppState, saveAppState, getInitialData, getFreshInitialData, clearAllStorage, loadSampleDemoData } from './services/storage';
 import { Navbar } from './components/Navbar';
 import { Sidebar, ActiveView } from './components/Sidebar';
 import { TaskModal } from './components/TaskModal';
-import { AISchedulerModal } from './components/AISchedulerModal';
 import { CommandMenu } from './components/CommandMenu';
 import { AccessKeysModal } from './components/AccessKeysModal';
 import { InstructionManualModal, ManualTab } from './components/InstructionManualModal';
@@ -30,7 +29,6 @@ export default function App() {
   // Modals state
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [accessKeysModalOpen, setAccessKeysModalOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
@@ -63,7 +61,7 @@ export default function App() {
     }
   }, [appState, isLoading]);
 
-  // Keyboard shortcut listener (Cmd+K, C for new task)
+  // Keyboard shortcut listener (Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -145,18 +143,6 @@ export default function App() {
     logAction('FOCUS_SESSION_COMPLETED', 'focus', `Completed ${session.durationMinutes}m focus session: "${session.taskTitle || 'Open Focus'}".`);
   };
 
-  const handleApplyAiSchedule = (result: { scheduledBlocks: TimeBlock[]; updatedTasks: Task[] }) => {
-    setAppState(prev => ({
-      ...prev,
-      timeBlocks: [...prev.timeBlocks, ...result.scheduledBlocks],
-      tasks: prev.tasks.map(t => {
-        const match = result.updatedTasks.find(ut => ut.id === t.id);
-        return match || t;
-      })
-    }));
-    logAction('AI_AUTOPILOT_APPLIED', 'schedule', `AI Autopilot scheduled ${result.scheduledBlocks.length} task blocks.`);
-  };
-
   const handleSelectWorkspaceMode = (mode: WorkspaceMode) => {
     setAppState(prev => ({ ...prev, workspaceMode: mode }));
   };
@@ -226,10 +212,17 @@ export default function App() {
     logAction('USER_PROFILE_UPDATED', 'task', `Calibrated user focus span: ${userProfile.customAttentionSpanMinutes || 25}m`);
   };
 
-  const handleResetData = () => {
-    const initial = getInitialData();
-    setAppState(initial);
-    saveAppState(initial);
+  // Reset to initial sample workspace data
+  const handleResetData = async () => {
+    const demo = await loadSampleDemoData();
+    setAppState(demo);
+  };
+
+  // Start completely fresh with an empty, zero-placeholder workspace
+  const handleStartFreshWorkspace = async (targetView: ActiveView = 'tasks') => {
+    const fresh = await clearAllStorage();
+    setAppState(fresh);
+    setActiveView(targetView);
   };
 
   const handleImportData = (data: AppState) => {
@@ -252,9 +245,7 @@ export default function App() {
     setTaskModalOpen(true);
   };
 
-  // Workspace Mode filtering:
-  // When in "Personal Flow", filter views primarily to personal tasks
-  // When in "Startup Core", focus on Sprint 28 projects
+  // Workspace Mode filtering
   let displayedState = appState;
   if (appState.workspaceMode === 'personal') {
     displayedState = {
@@ -273,7 +264,7 @@ export default function App() {
       <div className="h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center text-slate-600 dark:text-slate-400 font-mono text-xs transition-colors duration-150">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 dark:bg-indigo-500 animate-ping" />
-          <span>Mounting TIME-CO Local Persistence Engine...</span>
+          <span>Mounting TIME-CO Sovereign Workspace...</span>
         </div>
       </div>
     );
@@ -286,9 +277,9 @@ export default function App() {
         workspaceMode={appState.workspaceMode}
         onSelectWorkspaceMode={handleSelectWorkspaceMode}
         onOpenCommandMenu={() => setCommandMenuOpen(true)}
-        onOpenAiPlanner={() => setAiModalOpen(true)}
         onOpenFocusStudio={() => setActiveView('focus')}
         onResetData={handleResetData}
+        onStartFresh={() => handleStartFreshWorkspace('tasks')}
         onImportData={handleImportData}
         onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
         onOpenManual={() => handleOpenManual()}
@@ -297,6 +288,9 @@ export default function App() {
         appState={appState}
         mobileSidebarOpen={mobileSidebarOpen}
         onToggleMobileSidebar={() => setMobileSidebarOpen(prev => !prev)}
+        activeView={activeView}
+        onSelectView={(view) => setActiveView(view)}
+        onOpenNewTaskModal={handleOpenNewTask}
       />
 
       {/* Main Workspace: Sidebar + Viewport */}
@@ -320,8 +314,9 @@ export default function App() {
               workspaceMode={appState.workspaceMode}
               onSelectWorkspaceMode={handleSelectWorkspaceMode}
               onEnterWorkspace={(targetView?: ActiveView) => {
-                setActiveView(targetView || 'planner');
+                setActiveView(targetView || 'tasks');
               }}
+              onStartFreshWorkspace={handleStartFreshWorkspace}
               onOpenManual={(tab) => handleOpenManual(tab)}
               onOpenContactUs={() => setContactUsModalOpen(true)}
               totalTasks={appState.tasks.length}
@@ -335,7 +330,6 @@ export default function App() {
               appState={displayedState}
               onUpdateBlocks={handleUpdateBlocks}
               onUpdateTasks={handleUpdateTasks}
-              onOpenAiModal={() => setAiModalOpen(true)}
               onSelectTask={handleOpenTaskForEditing}
               onOpenNewTaskModal={handleOpenNewTask}
               onOpenManual={() => setManualOpen(true)}
@@ -356,7 +350,6 @@ export default function App() {
             <CalendarView
               appState={displayedState}
               onUpdateBlocks={handleUpdateBlocks}
-              onOpenAiPlanner={() => setAiModalOpen(true)}
             />
           )}
 
@@ -374,7 +367,7 @@ export default function App() {
             <ProjectsView
               appState={displayedState}
               onUpdateProjects={handleUpdateProjects}
-              onFilterTasksByProject={(projId) => {
+              onFilterTasksByProject={(_projId) => {
                 setActiveView('tasks');
               }}
             />
@@ -427,12 +420,31 @@ export default function App() {
         onAddDepartment={handleAddDepartment}
       />
 
-      {/* AI Schedule Optimization Modal */}
-      <AISchedulerModal
-        isOpen={aiModalOpen}
-        onClose={() => setAiModalOpen(false)}
+      {/* Raycast / Linear Style Command Palette */}
+      <CommandMenu
+        isOpen={commandMenuOpen}
+        onClose={() => setCommandMenuOpen(false)}
         appState={appState}
-        onApplySchedule={handleApplyAiSchedule}
+        onSelectView={setActiveView}
+        onOpenNewTaskModal={handleOpenNewTask}
+        onOpenFocusStudio={() => setActiveView('focus')}
+        onSelectTask={handleOpenTaskForEditing}
+        onOpenManual={() => handleOpenManual()}
+        onOpenContactUs={() => setContactUsModalOpen(true)}
+      />
+
+      {/* User Instruction Manual Modal */}
+      <InstructionManualModal
+        isOpen={manualOpen}
+        onClose={() => {
+          setManualOpen(false);
+          setManualInitialTab(undefined);
+        }}
+        workspaceMode={appState.workspaceMode}
+        onSelectWorkspaceMode={handleSelectWorkspaceMode}
+        onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
+        onOpenContactUs={() => setContactUsModalOpen(true)}
+        initialTab={manualInitialTab}
       />
 
       {/* Access Keys & RBAC Management Modal */}
@@ -444,35 +456,6 @@ export default function App() {
         onUpdateRoomKeys={handleUpdateRoomKeys}
         onUnlockRoom={handleUnlockRoom}
         onSetActiveKey={handleSetActiveKey}
-      />
-
-      {/* Raycast / Linear Style Command Palette */}
-      <CommandMenu
-        isOpen={commandMenuOpen}
-        onClose={() => setCommandMenuOpen(false)}
-        appState={appState}
-        onSelectView={setActiveView}
-        onOpenNewTaskModal={handleOpenNewTask}
-        onOpenAiPlanner={() => setAiModalOpen(true)}
-        onOpenFocusStudio={() => setActiveView('focus')}
-        onSelectTask={handleOpenTaskForEditing}
-        onOpenManual={() => handleOpenManual()}
-        onOpenContactUs={() => setContactUsModalOpen(true)}
-      />
-
-      {/* User Instruction Manual Modal (Enterprise Fleet, Startup Core, Personal Flow) */}
-      <InstructionManualModal
-        isOpen={manualOpen}
-        onClose={() => {
-          setManualOpen(false);
-          setManualInitialTab(undefined);
-        }}
-        workspaceMode={appState.workspaceMode}
-        onSelectWorkspaceMode={handleSelectWorkspaceMode}
-        onOpenAiPlanner={() => setAiModalOpen(true)}
-        onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
-        onOpenContactUs={() => setContactUsModalOpen(true)}
-        initialTab={manualInitialTab}
       />
 
       {/* Contact Us & Community Reviews Modal */}

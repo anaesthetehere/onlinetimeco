@@ -102,7 +102,6 @@ export interface TimeBlock {
   endTime: string; // HH:mm
   category: TimeBlockCategory;
   color: string;
-  isAiScheduled?: boolean;
   notes?: string;
 }
 

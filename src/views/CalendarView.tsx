@@ -5,7 +5,6 @@ import {
   ChevronRight, 
   Plus, 
   Clock, 
-  Sparkles, 
   Trash2, 
   Filter,
   CheckCircle2,
@@ -17,15 +16,13 @@ import { getTodayString } from '../services/storage';
 interface CalendarViewProps {
   appState: AppState;
   onUpdateBlocks: (blocks: TimeBlock[]) => void;
-  onOpenAiPlanner: () => void;
 }
 
 type CalendarMode = 'day' | 'week' | 'month';
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
   appState,
-  onUpdateBlocks,
-  onOpenAiPlanner
+  onUpdateBlocks
 }) => {
   const [calendarMode, setCalendarMode] = useState<CalendarMode>('week');
   const [currentDate, setCurrentDate] = useState(() => new Date());
@@ -216,11 +213,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </select>
 
           <button
-            onClick={onOpenAiPlanner}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            onClick={() => setQuickModalSlot({ date: currentDate.toISOString().split('T')[0], hour: 9 })}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
-            <span>AI Auto-Fill Open Gaps</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ New Time Slot</span>
           </button>
         </div>
       </div>
@@ -376,7 +373,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 <div className="font-semibold truncate pr-4">{block.title}</div>
                                 <div className="text-[9px] opacity-90 font-mono mt-0.5 flex items-center justify-between">
                                   <span>{block.startTime} - {block.endTime}</span>
-                                  {block.isAiScheduled && <Sparkles className="w-2.5 h-2.5" />}
                                 </div>
                                 <button
                                   onClick={(e) => handleDeleteBlock(block.id, e)}

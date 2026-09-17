@@ -3,26 +3,23 @@ import {
   Calendar as CalendarIcon, 
   ChevronLeft, 
   ChevronRight, 
-  Sparkles, 
   Clock, 
   Plus, 
   Trash2, 
   Flame, 
   AlertCircle,
-  ExternalLink,
-  Sliders,
   Play,
-  BookOpen
+  BookOpen,
+  CheckCircle2,
+  CalendarPlus
 } from 'lucide-react';
 import { AppState, TimeBlock, Task } from '../types';
-import { runLocalSmartScheduler, calculateWorkloadMetric } from '../services/aiScheduler';
 import { getTodayString } from '../services/storage';
 
 interface PlannerViewProps {
   appState: AppState;
   onUpdateBlocks: (blocks: TimeBlock[]) => void;
   onUpdateTasks: (tasks: Task[]) => void;
-  onOpenAiModal: () => void;
   onSelectTask: (task: Task) => void;
   onOpenNewTaskModal: () => void;
   onOpenManual?: () => void;
@@ -32,7 +29,6 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
   appState,
   onUpdateBlocks,
   onUpdateTasks,
-  onOpenAiModal,
   onSelectTask,
   onOpenNewTaskModal,
   onOpenManual
@@ -43,22 +39,47 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
 
   // New manual block state
   const [newBlockTitle, setNewBlockTitle] = useState('');
-  const [newBlockStart, setNewBlockStart] = useState('14:00');
-  const [newBlockEnd, setNewBlockEnd] = useState('15:00');
+  const [newBlockStart, setNewBlockStart] = useState('09:00');
+  const [newBlockEnd, setNewBlockEnd] = useState('10:00');
   const [newBlockCategory, setNewBlockCategory] = useState<TimeBlock['category']>('deep_work');
 
   // Filter blocks for selected date
   const dayBlocks = appState.timeBlocks
     .filter(b => b.date === selectedDate)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 
-  // Compute workload
-  const metrics = calculateWorkloadMetric(
-    dayBlocks,
-    appState.userProfile.workStartHour,
-    appState.userProfile.workEndHour
-  );
+  // Calculate day metrics locally (transparent, 100% offline, zero AI)
+  const calculateMetrics = () => {
+    let totalScheduledMinutes = 0;
+    let deepWorkMinutes = 0;
 
+    dayBlocks.forEach(b => {
+      const [sh, sm] = (b.startTime || '09:00').split(':').map(Number);
+      const [eh, em] = (b.endTime || '10:00').split(':').map(Number);
+      const mins = Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+      totalScheduledMinutes += mins;
+      if (b.category === 'deep_work') {
+        deepWorkMinutes += mins;
+      }
+    });
+
+    const startH = appState.userProfile?.workStartHour || 9;
+    const endH = appState.userProfile?.workEndHour || 18;
+    const capacityMinutes = Math.max(60, (endH - startH) * 60);
+    const deepWorkPercentage = totalScheduledMinutes > 0 
+      ? Math.round((deepWorkMinutes / totalScheduledMinutes) * 100) 
+      : 0;
+
+    return {
+      totalScheduledMinutes,
+      deepWorkMinutes,
+      capacityMinutes,
+      deepWorkPercentage,
+      overloaded: totalScheduledMinutes > capacityMinutes
+    };
+  };
+
+  const metrics = calculateMetrics();
   const totalHours = (metrics.totalScheduledMinutes / 60).toFixed(1);
   const deepHours = (metrics.deepWorkMinutes / 60).toFixed(1);
 
@@ -90,7 +111,6 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
       startTime: newBlockStart,
       endTime: newBlockEnd,
       category: newBlockCategory,
-      isAiScheduled: false,
       color: blockColor
     };
 
@@ -103,21 +123,36 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
     onUpdateBlocks(appState.timeBlocks.filter(b => b.id !== blockId));
   };
 
-  const handleQuickAutoSchedule = () => {
-    const res = runLocalSmartScheduler(
-      selectedDate,
-      appState.tasks,
-      appState.timeBlocks,
-      appState.userProfile.workStartHour,
-      appState.userProfile.workEndHour
-    );
-    if (res.scheduledBlocks.length > 0) {
-      onUpdateBlocks([...appState.timeBlocks, ...res.scheduledBlocks]);
-      onUpdateTasks(appState.tasks.map(t => {
-        const match = res.updatedTasks.find(ut => ut.id === t.id);
-        return match || t;
-      }));
+  // Schedule an unscheduled backlog task directly into the day's timeline
+  const handleScheduleTaskIntoDay = (task: Task) => {
+    let startMinutes = 9 * 60;
+    if (dayBlocks.length > 0) {
+      const lastBlock = dayBlocks[dayBlocks.length - 1];
+      const [h, m] = (lastBlock.endTime || '09:00').split(':').map(Number);
+      startMinutes = h * 60 + m;
     }
+    const duration = task.estimatedMinutes || 45;
+    const endMinutes = startMinutes + duration;
+
+    const formatMins = (mins: number) => {
+      const h = Math.floor(mins / 60) % 24;
+      const m = mins % 60;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    };
+
+    const newBlock: TimeBlock = {
+      id: `block-${Date.now()}`,
+      title: task.title,
+      taskId: task.id,
+      date: selectedDate,
+      startTime: formatMins(startMinutes),
+      endTime: formatMins(endMinutes),
+      category: task.priority === 'urgent' ? 'deep_work' : 'review',
+      color: task.priority === 'urgent' ? '#6366f1' : '#3b82f6'
+    };
+
+    onUpdateBlocks([...appState.timeBlocks, newBlock]);
+    onUpdateTasks(appState.tasks.map(t => t.id === task.id ? { ...t, scheduledDate: selectedDate } : t));
   };
 
   const navigateDay = (offset: number) => {
@@ -132,39 +167,35 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
       <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/40 backdrop-blur-xs flex flex-wrap items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">AI Time Planner & Day Blocks</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">Day Planner & Time Blocks</h1>
             <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
-              Motion Style
+              Direct & Transparent
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Real-time constraint solver balancing deep work intervals and meetings
+            Plan your day with focused time blocks, clear capacity limits, and zero external tracking
           </p>
         </div>
 
-        {/* Date Controls & AI Autopilot Button */}
+        {/* Date Controls & Action Buttons */}
         <div className="flex items-center flex-wrap gap-2 sm:gap-3">
-          {/* Landing Page Instruction Manual Button */}
           {onOpenManual && (
             <button
               id="landing-manual-btn"
               onClick={onOpenManual}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors shadow-2xs cursor-pointer"
-              title="Open Instruction Manual for Enterprise Fleet, Startup Core & Personal Flow"
+              title="Open Instruction Manual"
               aria-label="Open Instruction Manual"
             >
               <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <span>Instruction Manual</span>
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                Free Prototype
-              </span>
+              <span>User Manual</span>
             </button>
           )}
 
           <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 shadow-xs">
             <button
               onClick={() => navigateDay(-1)}
-              className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               title="Previous Day"
               aria-label="Previous day"
             >
@@ -176,7 +207,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
             </div>
             <button
               onClick={() => navigateDay(1)}
-              className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               title="Next Day"
               aria-label="Next day"
             >
@@ -185,21 +216,20 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
           </div>
 
           <button
-            id="planner-quick-auto-schedule-btn"
-            onClick={handleQuickAutoSchedule}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            onClick={() => setIsAddingBlock(!isAddingBlock)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
-            <span>Auto-Schedule Day</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span>+ Add Time Block</span>
           </button>
         </div>
       </div>
 
-      {/* Mobile/Tablet Sub-Navigation Tab for Responsive Viewing */}
+      {/* Mobile/Tablet Sub-Navigation Tab */}
       <div className="xl:hidden flex items-center border-b border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 px-3 py-1.5 gap-2">
         <button
           onClick={() => setActiveMobileTab('schedule')}
-          className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
+          className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
             activeMobileTab === 'schedule'
               ? 'bg-indigo-600 text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -209,17 +239,17 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
         </button>
         <button
           onClick={() => setActiveMobileTab('backlog')}
-          className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors ${
+          className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-colors cursor-pointer ${
             activeMobileTab === 'backlog'
               ? 'bg-indigo-600 text-white shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          Backlog Ready ({unscheduledTasks.length})
+          Backlog Tasks ({unscheduledTasks.length})
         </button>
       </div>
 
-      {/* Main Content: Split View on Desktop, Tabbed on Mobile/Tablet */}
+      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Day Timeline */}
         <div className={`flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6 ${
@@ -231,7 +261,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
               <div>
                 <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase">Allocated Time</div>
                 <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
-                  {totalHours}h <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">/ 9h</span>
+                  {totalHours}h <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">/ 9h cap</span>
                 </div>
               </div>
               <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
@@ -241,13 +271,13 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
 
             <div className="p-4 rounded-xl bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
               <div>
-                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase">Deep Work Capacity</div>
+                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase">Deep Work Blocks</div>
                 <div className="text-xl font-bold text-slate-900 dark:text-white mt-0.5">
                   {deepHours}h <span className="text-xs text-slate-500 dark:text-slate-400 font-normal">({metrics.deepWorkPercentage}%)</span>
                 </div>
               </div>
               <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                <Sparkles className="w-5 h-5" />
+                <CheckCircle2 className="w-5 h-5" />
               </div>
             </div>
 
@@ -260,7 +290,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                       <AlertCircle className="w-4 h-4" /> Overloaded
                     </span>
                   ) : (
-                    <span className="text-cyan-600 dark:text-cyan-400 text-base font-semibold">Healthy Velocity</span>
+                    <span className="text-cyan-600 dark:text-cyan-400 text-base font-semibold">Balanced Flow</span>
                   )}
                 </div>
               </div>
@@ -281,10 +311,10 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
               </div>
               <button
                 onClick={() => setIsAddingBlock(!isAddingBlock)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
-                <span>Custom Block</span>
+                <span>Add Time Block</span>
               </button>
             </div>
 
@@ -297,12 +327,12 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                     type="text"
                     value={newBlockTitle}
                     onChange={(e) => setNewBlockTitle(e.target.value)}
-                    placeholder="e.g., Code Review & Architecture Sync"
+                    placeholder="e.g., Deep Work: Product Architecture"
                     className="w-full px-3 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-600 dark:text-slate-400 mb-1 font-medium">Start</label>
+                  <label className="block text-slate-600 dark:text-slate-400 mb-1 font-medium">Start Time</label>
                   <input
                     type="time"
                     value={newBlockStart}
@@ -311,7 +341,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-600 dark:text-slate-400 mb-1 font-medium">End</label>
+                  <label className="block text-slate-600 dark:text-slate-400 mb-1 font-medium">End Time</label>
                   <input
                     type="time"
                     value={newBlockEnd}
@@ -323,30 +353,27 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                   <label className="block text-slate-600 dark:text-slate-400 mb-1 font-medium">Category</label>
                   <select
                     value={newBlockCategory}
-                    onChange={(e) => setNewBlockCategory(e.target.value as any)}
+                    onChange={(e) => setNewBlockCategory(e.target.value as TimeBlock['category'])}
                     className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
                   >
                     <option value="deep_work">Deep Work</option>
                     <option value="meeting">Meeting</option>
                     <option value="review">Review</option>
                     <option value="admin">Admin</option>
-                    <option value="break">Break / Lunch</option>
-                    {Array.from(new Set(appState.customCategories || [])).map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
+                    <option value="break">Break</option>
                   </select>
                 </div>
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-xs"
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold shadow-xs cursor-pointer"
                   >
-                    Add Block
+                    Save Block
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsAddingBlock(false)}
-                    className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                    className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -354,49 +381,43 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
               </form>
             )}
 
-            {/* Time Blocks Stream */}
-            <div className="p-4 space-y-2.5">
-              {dayBlocks.length > 0 ? (
-                dayBlocks.map(block => (
-                  <div
-                    key={block.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 hover:border-indigo-400 dark:hover:border-slate-700 transition-all shadow-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-10 rounded-full shrink-0" style={{ backgroundColor: block.color }} />
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-slate-900 dark:text-white text-xs">{block.title}</span>
-                          {block.isAiScheduled && (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 flex items-center gap-1">
-                              <Sparkles className="w-2.5 h-2.5" />
-                              <span>AI Locked</span>
-                            </span>
-                          )}
-                          <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                            {block.category.replace('_', ' ')}
-                          </span>
-                        </div>
-                        <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
-                          {block.startTime} – {block.endTime}
-                        </div>
+            {/* List of Time Blocks */}
+            <div className="divide-y divide-slate-200 dark:divide-slate-800/80">
+              {dayBlocks.map((block) => (
+                <div
+                  key={block.id}
+                  className="p-3.5 sm:p-4 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 flex items-center justify-between gap-3 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-1.5 h-10 rounded-full shrink-0" 
+                      style={{ backgroundColor: block.color || '#6366f1' }}
+                    />
+                    <div>
+                      <div className="font-semibold text-slate-900 dark:text-white text-xs sm:text-sm">
+                        {block.title}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                        <span>{block.startTime} – {block.endTime}</span>
+                        <span>•</span>
+                        <span className="capitalize">{block.category.replace('_', ' ')}</span>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleDeleteBlock(block.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md transition-colors"
-                        title="Remove Block"
-                        aria-label="Remove time block"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
                   </div>
-                ))
-              ) : (
-                <div className="py-12 text-center space-y-3">
+
+                  <button
+                    onClick={() => handleDeleteBlock(block.id)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                    title="Delete Time Block"
+                    aria-label="Delete Time Block"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+
+              {dayBlocks.length === 0 && (
+                <div className="p-8 text-center space-y-3">
                   <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center mx-auto text-indigo-600 dark:text-indigo-400">
                     <Clock className="w-6 h-6" />
                   </div>
@@ -404,14 +425,14 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                     No blocks scheduled for {selectedDate}
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                    Let the intelligent AI scheduler allocate your focus blocks, or add custom calendar slots manually.
+                    Create custom time slots for focused work intervals, or schedule tasks directly from the backlog.
                   </p>
                   <button
-                    onClick={handleQuickAutoSchedule}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all"
+                    onClick={() => setIsAddingBlock(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Run AI Autopilot for {selectedDate}</span>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create First Time Block</span>
                   </button>
                 </div>
               )}
@@ -432,7 +453,7 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
             </div>
             <button
               onClick={onOpenNewTaskModal}
-              className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="p-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               title="Add New Task"
               aria-label="Add new task"
             >
@@ -444,11 +465,13 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
             {unscheduledTasks.map(task => (
               <div
                 key={task.id}
-                onClick={() => onSelectTask(task)}
-                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/80 hover:border-indigo-400 dark:hover:border-indigo-500/50 cursor-pointer transition-all space-y-1.5 group shadow-2xs"
+                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/80 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all space-y-1.5 group shadow-2xs"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="font-medium text-slate-800 dark:text-slate-200 text-xs group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+                  <span 
+                    onClick={() => onSelectTask(task)}
+                    className="font-medium text-slate-800 dark:text-slate-200 text-xs group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors cursor-pointer flex-1"
+                  >
                     {task.title}
                   </span>
                   <span className={`w-2 h-2 rounded-full shrink-0 mt-1 ${
@@ -461,19 +484,31 @@ export const PlannerView: React.FC<PlannerViewProps> = ({
                     <Clock className="w-2.5 h-2.5" />
                     {task.estimatedMinutes}m
                   </span>
-                  {task.dueDate && <span>Due: {task.dueDate}</span>}
+                  <button
+                    onClick={() => handleScheduleTaskIntoDay(task)}
+                    className="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-semibold cursor-pointer"
+                    title={`Schedule into ${selectedDate}`}
+                  >
+                    + Schedule
+                  </button>
                 </div>
               </div>
             ))}
+
+            {unscheduledTasks.length === 0 && (
+              <div className="py-8 text-center text-slate-400 dark:text-slate-500 text-xs italic">
+                All tasks are scheduled!
+              </div>
+            )}
           </div>
 
           <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
             <button
-              onClick={onOpenAiModal}
-              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 active:scale-[0.98] transition-all"
+              onClick={onOpenNewTaskModal}
+              className="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-sm cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Launch AI Workload Planner</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Create New Task</span>
             </button>
           </div>
         </div>

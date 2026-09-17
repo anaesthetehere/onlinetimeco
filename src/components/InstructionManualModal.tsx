@@ -49,7 +49,6 @@ interface InstructionManualModalProps {
   workspaceMode: WorkspaceMode;
   onSelectWorkspaceMode: (mode: WorkspaceMode) => void;
   initialTab?: ManualTab;
-  onOpenAiPlanner?: () => void;
   onOpenAccessKeysModal?: () => void;
   onOpenContactUs?: () => void;
 }
@@ -60,7 +59,6 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
   workspaceMode,
   onSelectWorkspaceMode,
   initialTab,
-  onOpenAiPlanner,
   onOpenAccessKeysModal,
   onOpenContactUs
 }) => {
@@ -258,7 +256,7 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
                       <span>Startup Core Users</span>
                     </div>
                     <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside">
-                      <li><strong>Automated Day Planning:</strong> Click <strong>AI Schedule Planner</strong> (Sparkles icon).</li>
+                      <li><strong>Dedicated Day Planning:</strong> Click <strong>Day Planner</strong> in the sidebar.</li>
                       <li><strong>Sprint Kanban Board:</strong> Click <strong>Tasks & Issues</strong> in the left sidebar.</li>
                       <li><strong>Shared Sprint Token:</strong> Use <strong>Access Keys</strong> for squad-wide tokens.</li>
                       <li><strong>Velocity Tracking:</strong> Click <strong>Velocity Analytics</strong> for sprint throughput.</li>
@@ -360,15 +358,15 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
 
                   <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                        <Sparkles className="w-3.5 h-3.5" />
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                        <Clock className="w-3.5 h-3.5" />
                       </div>
                       <div>
-                        <strong className="text-slate-900 dark:text-white font-semibold">AI Schedule Planner (Sparkles)</strong>
-                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Opens the Motion-style constraint solver modal to automatically arrange pending backlog tasks into open calendar slots.</p>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Day Planner & Time Blocks</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Direct schedule management to allocate deep work intervals and meetings around daily workload capacity.</p>
                       </div>
                     </div>
-                    <span className="shrink-0 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 font-mono text-[10px]">AI Auto-Solver</span>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 font-mono text-[10px]">Time-Blocking</span>
                   </div>
 
                   <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
@@ -455,9 +453,9 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
 
                   <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
                     <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
-                      <Clock className="w-3.5 h-3.5 text-indigo-500" /> AI Day Planner
+                      <Clock className="w-3.5 h-3.5 text-indigo-500" /> Day Planner
                     </strong>
-                    <p className="text-slate-500 dark:text-slate-400">Visual day calendar with time block cards, real-time workload percentage meter, and the 1-click Auto-Schedule constraint solver.</p>
+                    <p className="text-slate-500 dark:text-slate-400">Visual day calendar with time block cards, real-time workload percentage meter, and direct slot assignment.</p>
                   </div>
 
                   <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
@@ -742,7 +740,6 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
 
               {/* Detailed Button-by-Button Operating Guide */}
               <StartupPlaybookGuide
-                onOpenAiPlanner={onOpenAiPlanner}
                 onOpenAccessKeysModal={onOpenAccessKeysModal}
               />
 
@@ -756,11 +753,10 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
                   <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
                     <div className="flex items-center gap-2 font-semibold text-xs text-indigo-600 dark:text-indigo-400">
                       <Clock className="w-4 h-4" />
-                      <span>1. AI Time Planner & Day Blocks</span>
+                      <span>1. Time Planner & Day Blocks</span>
                     </div>
                     <p className="text-xs text-slate-600 dark:text-slate-400 leading-normal">
-                      The core landing view features a Motion-style constraint solver. Click <strong>AI Schedule Planner</strong> (or the magic wand) 
-                      to automatically fit your sprint backlog tasks into uninterrupted deep-work time blocks between scheduled meetings.
+                      The core Day Planner view lets you fit your sprint backlog tasks into uninterrupted deep-work time blocks between scheduled meetings with clear capacity limits.
                     </p>
                   </div>
 
@@ -1171,16 +1167,6 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {onOpenAiPlanner && (
-              <button
-                onClick={() => { onClose(); onOpenAiPlanner(); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-medium transition-colors"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Launch AI Planner</span>
-              </button>
-            )}
-
             {onOpenAccessKeysModal && (
               <button
                 onClick={() => { onClose(); onOpenAccessKeysModal(); }}
