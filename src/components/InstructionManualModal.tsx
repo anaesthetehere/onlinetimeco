@@ -23,34 +23,59 @@ import {
   Database,
   Lock,
   Zap,
-  Globe
+  Globe,
+  Compass,
+  Mail,
+  Sun,
+  Play,
+  CheckSquare,
+  BarChart3,
+  HeartHandshake,
+  Sliders
 } from 'lucide-react';
 import { WorkspaceMode, AppState } from '../types';
+import {
+  EnterprisePlaybookGuide,
+  StartupPlaybookGuide,
+  PersonalPlaybookGuide,
+  RoleButtonsDirectory
+} from './RolePlaybookGuide';
+
+export type ManualTab = 'buttons_guide' | 'enterprise' | 'startup' | 'personal' | 'future_roadmap' | 'architecture';
 
 interface InstructionManualModalProps {
   isOpen: boolean;
   onClose: () => void;
   workspaceMode: WorkspaceMode;
   onSelectWorkspaceMode: (mode: WorkspaceMode) => void;
+  initialTab?: ManualTab;
   onOpenAiPlanner?: () => void;
   onOpenAccessKeysModal?: () => void;
+  onOpenContactUs?: () => void;
 }
-
-type ManualTab = 'enterprise' | 'startup' | 'personal' | 'future_roadmap' | 'architecture';
 
 export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
   isOpen,
   onClose,
   workspaceMode,
   onSelectWorkspaceMode,
+  initialTab,
   onOpenAiPlanner,
-  onOpenAccessKeysModal
+  onOpenAccessKeysModal,
+  onOpenContactUs
 }) => {
   const [activeTab, setActiveTab] = useState<ManualTab>(
-    workspaceMode === 'enterprise' ? 'enterprise' : workspaceMode === 'startup' ? 'startup' : 'personal'
+    initialTab || (workspaceMode === 'enterprise' ? 'enterprise' : workspaceMode === 'startup' ? 'startup' : 'personal')
   );
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  // Sync initialTab when modal opens
+  React.useEffect(() => {
+    if (initialTab && isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
 
   if (!isOpen) return null;
 
@@ -100,6 +125,18 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
         {/* Navigation Tabs Bar */}
         <div className="px-4 sm:px-6 pt-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-2 scrollbar-none w-full sm:w-auto">
+            <button
+              onClick={() => setActiveTab('buttons_guide')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
+                activeTab === 'buttons_guide'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5 text-amber-500" />
+              <span>What to Find Where & Button Guide</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('enterprise')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
@@ -178,6 +215,341 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 text-sm leading-relaxed">
           
           {/* ========================================================================= */}
+          {/* TAB 0: WHAT TO FIND WHERE & BUTTON-BY-BUTTON GUIDE                       */}
+          {/* ========================================================================= */}
+          {activeTab === 'buttons_guide' && (
+            <div className="space-y-6">
+              {/* Warm Notice Banner */}
+              <div className="p-4 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-slate-800 dark:text-slate-200 space-y-1.5">
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                  <Compass className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <span>Platform Navigation & Button-by-Button UI Guide</span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-normal">
+                  Welcome! This guide explains <strong>what to find where</strong> and <strong>what every button specifically does</strong> so that Enterprise, Startup, and Personal users can immediately extract full power from the Time-Co prototype.
+                </p>
+              </div>
+
+              {/* Quick Role-Based "What to Find Where" Overview */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  1. Where to Go Based on Who You Are
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Enterprise Card */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                      <Building2 className="w-4 h-4" />
+                      <span>Enterprise Fleet Users</span>
+                    </div>
+                    <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside">
+                      <li><strong>Chamber & RBAC Keys:</strong> Click <strong>Access Keys</strong> in the top navbar.</li>
+                      <li><strong>Budget Burn & OKRs:</strong> Click <strong>Enterprise</strong> in the left sidebar.</li>
+                      <li><strong>Team Roster & Roles:</strong> Edit employee names and designations in the Enterprise view.</li>
+                      <li><strong>Risk Mitigation:</strong> Click <strong>Risk Radar</strong> to plot impact matrices.</li>
+                    </ul>
+                  </div>
+
+                  {/* Startup Card */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                      <Rocket className="w-4 h-4" />
+                      <span>Startup Core Users</span>
+                    </div>
+                    <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside">
+                      <li><strong>Automated Day Planning:</strong> Click <strong>AI Schedule Planner</strong> (Sparkles icon).</li>
+                      <li><strong>Sprint Kanban Board:</strong> Click <strong>Tasks & Issues</strong> in the left sidebar.</li>
+                      <li><strong>Shared Sprint Token:</strong> Use <strong>Access Keys</strong> for squad-wide tokens.</li>
+                      <li><strong>Velocity Tracking:</strong> Click <strong>Velocity Analytics</strong> for sprint throughput.</li>
+                    </ul>
+                  </div>
+
+                  {/* Personal Flow Card */}
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs">
+                      <User className="w-4 h-4" />
+                      <span>Personal Flow Users</span>
+                    </div>
+                    <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside">
+                      <li><strong>Deep Work Timer:</strong> Click <strong>Focus Mode</strong> in top navbar or sidebar.</li>
+                      <li><strong>Attention Calibration:</strong> Click <strong>-5m / +5m</strong> to tune your natural stamina.</li>
+                      <li><strong>Ambient Soundscapes:</strong> Toggle White, Pink, Theta, or Rain audio chips.</li>
+                      <li><strong>Atomic Habit Streaks:</strong> Click <strong>Personal Growth</strong> in the sidebar.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Role-Specific Button Directory & Filter */}
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    2. Role-Specific Button Directory & Operational Significance
+                  </h4>
+                  <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
+                    Filter buttons by your selected role level
+                  </span>
+                </div>
+                
+                <RoleButtonsDirectory
+                  currentRole={workspaceMode}
+                  onSelectRoleTab={(tier) => setActiveTab(tier)}
+                />
+              </div>
+
+              {/* Section 3: Every Top Navigation Bar Button */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  3. Top Navigation Bar: What Every Button Specifically Does
+                </h4>
+
+                <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 text-xs">
+                  
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold font-mono text-xs">
+                        TC
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Time-Co Brand Logo (Top Left)</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Clicking the logo navigates back to the Warm Welcome Landing Page anytime to switch focus roles or read the introductory guide.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Return to Welcome</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                        <Sliders className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Workspace Switcher Dropdown</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Switches between Enterprise Fleet, Startup Core, and Personal Flow. Dynamically filters features and sets role context.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 font-mono text-[10px]">Workspace Context</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
+                        <Search className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Global Search Omnibar (⌘K / Ctrl+K)</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Opens the command palette to search any task, project, or risk, or jump to any view using your keyboard.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">⌘K Command Bar</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                        <Play className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Focus Mode Button & Live Pill</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Opens the Pomodoro Focus Studio. When a session is active, it transforms into an animated live ticking countdown pill.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-300 font-mono text-[10px]">Deep Work</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">AI Schedule Planner (Sparkles)</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Opens the Motion-style constraint solver modal to automatically arrange pending backlog tasks into open calendar slots.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-300 font-mono text-[10px]">AI Auto-Solver</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                        <Key className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Room Access Keys (Shield)</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Manage and audit SHA-256 room tokens, unlock departmental chambers, and manage role-based permissions.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-300 font-mono text-[10px]">Security & RBAC</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 flex items-center justify-center">
+                        <Sun className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Theme Switcher (Sun / Moon)</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Instantly toggles between high-contrast light mode and eye-safe deep dark mode.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px]">Theme Toggle</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                        <BookOpen className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Instruction Manual (Book)</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Opens this master guide and button encyclopedia. Placed right before Contact Us in the navbar.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 font-mono text-[10px]">User Manual</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                        <Mail className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">Contact Us (Mail)</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Opens direct feedback channel to <strong>anweshasenapati4@gmail.com</strong> for reviews, enhancement ideas, bug fixes, or any help.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 font-mono text-[10px]">Feedback & Help</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                        <Database className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <strong className="text-slate-900 dark:text-white font-semibold">100% Local / Storage Sync Dropdown</strong>
+                        <p className="text-slate-500 dark:text-slate-400 text-[11px]">Shows IndexedDB health, lets you export full JSON backups, export CSV task lists, import backups, or wipe data safely.</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-mono text-[10px]">Storage & Backup</span>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Section 3: Every Left Sidebar View */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  3. Left Sidebar Views: What to Find in Each Section
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <HeartHandshake className="w-3.5 h-3.5 text-amber-500" /> Welcome & Overview
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">The introductory landing page. Switch your operational role, review tier playbooks, and reach out to the developer.</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <Clock className="w-3.5 h-3.5 text-indigo-500" /> AI Day Planner
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">Visual day calendar with time block cards, real-time workload percentage meter, and the 1-click Auto-Schedule constraint solver.</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <Layers className="w-3.5 h-3.5 text-indigo-500" /> Tasks & Issues
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">Full Kanban columns (Backlog, Todo, In Progress, Review, Completed), priority tags, subtask checklists, and tag filters.</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <Calendar className="w-3.5 h-3.5 text-indigo-500" /> Calendar
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">Day, Week, and full 7-column Month grid views. Filter blocks by category (Deep Work, Meeting, Architecture, Bugfix, Operations).</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <Play className="w-3.5 h-3.5 text-emerald-500" /> Focus Studio
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">Pomodoro timer, Attention Span Calibrator (-5m/+5m) to tune biological stamina, and offline ambient audio synthesizer.</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <Workflow className="w-3.5 h-3.5 text-indigo-500" /> Projects & Sprints
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">Sprint deliverables, project milestones, completion percentages, project codes ([CORE], [ALPHA]), and budget allocations.</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <Building2 className="w-3.5 h-3.5 text-purple-500" /> Enterprise Fleet
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">Department headcount and budget burn rates, OKR objective trees, and editable team roster with role and designation editor.</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> Risk Radar
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">9-cell Probability vs. Impact matrix, risk mitigation action playbooks, owner assignments, and severity monitoring.</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <BarChart3 className="w-3.5 h-3.5 text-cyan-500" /> Velocity Analytics
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">Visual completion stats, logged deep work minutes, weekly velocity charts, and category time distribution.</p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                    <strong className="text-slate-900 dark:text-white flex items-center gap-1.5 font-semibold">
+                      <CheckSquare className="w-3.5 h-3.5 text-emerald-500" /> Personal Growth
+                    </strong>
+                    <p className="text-slate-500 dark:text-slate-400">Atomic daily habit streak tracker, daily mood & energy scores (1-5), and private end-of-day cognitive reflections.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons to explore */}
+              <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-indigo-900 dark:text-indigo-200">
+                  <span>Want to explore detailed instructions for your specific role? Select a tier tab above or click below:</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveTab('enterprise')}
+                    className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 transition-colors"
+                  >
+                    Enterprise Guide
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('startup')}
+                    className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 transition-colors"
+                  >
+                    Startup Guide
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('personal')}
+                    className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 transition-colors"
+                  >
+                    Personal Guide
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ========================================================================= */}
           {/* TAB 1: ENTERPRISE FLEET                                                  */}
           {/* ========================================================================= */}
           {activeTab === 'enterprise' && (
@@ -221,10 +593,15 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
                 )}
               </div>
 
+              {/* Detailed Button-by-Button Operating Guide */}
+              <EnterprisePlaybookGuide
+                onOpenAccessKeysModal={onOpenAccessKeysModal}
+              />
+
               {/* Detailed Walkthrough */}
               <div className="space-y-4">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Detailed Operational Walkthrough
+                  Additional Enterprise Architectural Walkthrough
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -363,10 +740,16 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
                 )}
               </div>
 
+              {/* Detailed Button-by-Button Operating Guide */}
+              <StartupPlaybookGuide
+                onOpenAiPlanner={onOpenAiPlanner}
+                onOpenAccessKeysModal={onOpenAccessKeysModal}
+              />
+
               {/* Detailed Walkthrough */}
               <div className="space-y-4">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Detailed Operational Walkthrough
+                  Additional Startup Architectural Walkthrough
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -504,10 +887,13 @@ export const InstructionManualModal: React.FC<InstructionManualModalProps> = ({
                 )}
               </div>
 
+              {/* Detailed Button-by-Button Operating Guide */}
+              <PersonalPlaybookGuide />
+
               {/* Detailed Walkthrough */}
               <div className="space-y-4">
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Detailed Operational Walkthrough
+                  Additional Personal Flow Architectural Walkthrough
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

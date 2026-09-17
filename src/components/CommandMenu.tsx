@@ -14,7 +14,8 @@ import {
   Download, 
   X, 
   ArrowRight,
-  BookOpen
+  BookOpen,
+  Mail
 } from 'lucide-react';
 import { AppState, Task } from '../types';
 import { ActiveView } from './Sidebar';
@@ -29,6 +30,7 @@ interface CommandMenuProps {
   onOpenFocusStudio: () => void;
   onSelectTask: (task: Task) => void;
   onOpenManual?: () => void;
+  onOpenContactUs?: () => void;
 }
 
 export const CommandMenu: React.FC<CommandMenuProps> = ({
@@ -40,7 +42,8 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
   onOpenAiPlanner,
   onOpenFocusStudio,
   onSelectTask,
-  onOpenManual
+  onOpenManual,
+  onOpenContactUs
 }) => {
   const [query, setQuery] = useState('');
 
@@ -71,7 +74,9 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({
   ).slice(0, 3);
 
   const navigationActions = [
-    { label: 'Open Instruction Manual (Enterprise, Startup, Personal)', icon: BookOpen, action: () => { if (onOpenManual) onOpenManual(); onClose(); } },
+    { label: 'Welcome & Role Selection Landing Page (Time-Co)', icon: HeartHandshake, action: () => { onSelectView('landing'); onClose(); } },
+    { label: 'Open Instruction Manual & Button Guide', icon: BookOpen, action: () => { if (onOpenManual) onOpenManual(); onClose(); } },
+    { label: 'Contact Us & Share Reviews (anweshasenapati4@gmail.com)', icon: Mail, action: () => { if (onOpenContactUs) onOpenContactUs(); onClose(); } },
     { label: 'Go to AI Day Planner', icon: Sparkles, action: () => { onSelectView('planner'); onClose(); } },
     { label: 'Go to Tasks & Issues (Kanban/List/Matrix)', icon: CheckSquare, action: () => { onSelectView('tasks'); onClose(); } },
     { label: 'Go to Calendar & Time Blocking', icon: Calendar, action: () => { onSelectView('calendar'); onClose(); } },

@@ -22,6 +22,7 @@ import { AppState } from '../types';
 import { useTheme } from '../context/ThemeContext';
 
 export type ActiveView = 
+  | 'landing'
   | 'planner' 
   | 'tasks' 
   | 'calendar' 
@@ -60,6 +61,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }).length;
 
   const navItems = [
+    {
+      id: 'landing' as ActiveView,
+      label: 'Welcome & Overview',
+      icon: HeartHandshake,
+      badge: 'Start',
+      badgeColor: 'bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30'
+    },
     {
       id: 'planner' as ActiveView,
       label: 'AI Day Planner',

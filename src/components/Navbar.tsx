@@ -19,7 +19,9 @@ import {
   X,
   Shield,
   Key,
-  BookOpen
+  BookOpen,
+  Mail,
+  HeartHandshake
 } from 'lucide-react';
 import { WorkspaceMode, AppState } from '../types';
 import { exportStateAsJSON, exportTasksAsCSV } from '../services/storage';
@@ -35,6 +37,8 @@ interface NavbarProps {
   onImportData: (data: AppState) => void;
   onOpenAccessKeysModal?: () => void;
   onOpenManual?: () => void;
+  onOpenContactUs?: () => void;
+  onNavigateHome?: () => void;
   activeFocusSession?: { taskTitle?: string; timeLeft: string; isRunning: boolean };
   appState: AppState;
   mobileSidebarOpen?: boolean;
@@ -51,6 +55,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onImportData,
   onOpenAccessKeysModal,
   onOpenManual,
+  onOpenContactUs,
+  onNavigateHome,
   activeFocusSession,
   appState,
   mobileSidebarOpen,
@@ -132,13 +138,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         {/* Brand */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-md shadow-indigo-500/20 ring-1 ring-black/5 dark:ring-white/20 shrink-0">
+        <button
+          onClick={onNavigateHome}
+          className="flex items-center gap-2 sm:gap-2.5 text-left group cursor-pointer focus:outline-none"
+          title="Return to Time-Co Welcome Landing Page"
+        >
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-md shadow-indigo-500/20 ring-1 ring-black/5 dark:ring-white/20 shrink-0 group-hover:scale-105 transition-transform">
             <Cpu className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-extrabold tracking-tight text-slate-900 dark:text-white text-base">
+              <span className="font-extrabold tracking-tight text-slate-900 dark:text-white text-base group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 TIME<span className="text-indigo-600 dark:text-indigo-400">-CO</span>
               </span>
               <span className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-medium rounded bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30">
@@ -146,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </div>
           </div>
-        </div>
+        </button>
 
         <div className="hidden sm:block h-4 w-px bg-slate-200 dark:bg-slate-800" />
 
@@ -206,6 +216,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               <div className="border-t border-slate-100 dark:border-slate-800/80 my-1" />
+              {onNavigateHome && (
+                <button
+                  onClick={() => { setWorkspaceMenuOpen(false); onNavigateHome(); }}
+                  className="w-full text-left px-3 py-2 text-xs text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2 font-medium"
+                >
+                  <HeartHandshake className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Welcome Landing Page</span>
+                </button>
+              )}
               {onOpenManual && (
                 <button
                   id="dropdown-manual-btn"
@@ -217,6 +236,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>Instruction Manual</span>
                   </div>
                   <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">Free</span>
+                </button>
+              )}
+              {onOpenContactUs && (
+                <button
+                  onClick={() => { setWorkspaceMenuOpen(false); onOpenContactUs(); }}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 font-medium"
+                >
+                  <Mail className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>Contact Us & Reviews</span>
                 </button>
               )}
               {onOpenAccessKeysModal && (
@@ -301,7 +329,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             id="navbar-manual-btn"
             onClick={onOpenManual}
             className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium transition-colors"
-            title="Instruction Manual (Enterprise, Startup & Personal Levels)"
+            title="Instruction Manual & Button Guide (Enterprise, Startup & Personal Levels)"
             aria-label="User Instruction Manual"
           >
             <BookOpen className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
@@ -309,6 +337,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="hidden lg:inline-block px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
               Free
             </span>
+          </button>
+        )}
+
+        {/* Contact Us Button (placed AFTER Manual in navigation bar as requested) */}
+        {onOpenContactUs && (
+          <button
+            id="navbar-contact-btn"
+            onClick={onOpenContactUs}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40 dark:hover:from-amber-900/50 dark:hover:to-orange-900/50 border border-amber-300/90 dark:border-amber-700/60 text-amber-900 dark:text-amber-200 text-xs font-semibold shadow-2xs transition-all hover:scale-[1.02] active:scale-[0.98]"
+            title="Contact Us: Share Reviews, Feedback, Feature Enhancements, Bugs or Help (anweshasenapati4@gmail.com)"
+            aria-label="Contact Us"
+          >
+            <Mail className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>Contact Us</span>
           </button>
         )}
 

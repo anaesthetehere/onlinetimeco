@@ -7,9 +7,11 @@ import { TaskModal } from './components/TaskModal';
 import { AISchedulerModal } from './components/AISchedulerModal';
 import { CommandMenu } from './components/CommandMenu';
 import { AccessKeysModal } from './components/AccessKeysModal';
-import { InstructionManualModal } from './components/InstructionManualModal';
+import { InstructionManualModal, ManualTab } from './components/InstructionManualModal';
+import { ContactUsModal } from './components/ContactUsModal';
 
 // Views
+import { LandingView } from './views/LandingView';
 import { PlannerView } from './views/PlannerView';
 import { TasksView } from './views/TasksView';
 import { CalendarView } from './views/CalendarView';
@@ -23,7 +25,7 @@ import { PersonalView } from './views/PersonalView';
 export default function App() {
   const [appState, setAppState] = useState<AppState>(getInitialData);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeView, setActiveView] = useState<ActiveView>('planner');
+  const [activeView, setActiveView] = useState<ActiveView>('landing');
 
   // Modals state
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -32,9 +34,16 @@ export default function App() {
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
   const [accessKeysModalOpen, setAccessKeysModalOpen] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
+  const [manualInitialTab, setManualInitialTab] = useState<ManualTab | undefined>(undefined);
+  const [contactUsModalOpen, setContactUsModalOpen] = useState(false);
   const [focusTaskId, setFocusTaskId] = useState<string | undefined>(undefined);
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const handleOpenManual = (tab?: ManualTab) => {
+    setManualInitialTab(tab);
+    setManualOpen(true);
+  };
 
   // Initial load from IndexedDB / localStorage
   useEffect(() => {
@@ -282,7 +291,9 @@ export default function App() {
         onResetData={handleResetData}
         onImportData={handleImportData}
         onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
-        onOpenManual={() => setManualOpen(true)}
+        onOpenManual={() => handleOpenManual()}
+        onOpenContactUs={() => setContactUsModalOpen(true)}
+        onNavigateHome={() => setActiveView('landing')}
         appState={appState}
         mobileSidebarOpen={mobileSidebarOpen}
         onToggleMobileSidebar={() => setMobileSidebarOpen(prev => !prev)}
@@ -304,6 +315,21 @@ export default function App() {
 
         {/* View Rendering */}
         <main className="flex-1 overflow-hidden relative">
+          {activeView === 'landing' && (
+            <LandingView
+              workspaceMode={appState.workspaceMode}
+              onSelectWorkspaceMode={handleSelectWorkspaceMode}
+              onEnterWorkspace={(targetView?: ActiveView) => {
+                setActiveView(targetView || 'planner');
+              }}
+              onOpenManual={(tab) => handleOpenManual(tab)}
+              onOpenContactUs={() => setContactUsModalOpen(true)}
+              totalTasks={appState.tasks.length}
+              totalProjects={appState.projects.length}
+              totalMembers={appState.teamMembers.length}
+            />
+          )}
+
           {activeView === 'planner' && (
             <PlannerView
               appState={displayedState}
@@ -430,17 +456,30 @@ export default function App() {
         onOpenAiPlanner={() => setAiModalOpen(true)}
         onOpenFocusStudio={() => setActiveView('focus')}
         onSelectTask={handleOpenTaskForEditing}
-        onOpenManual={() => setManualOpen(true)}
+        onOpenManual={() => handleOpenManual()}
+        onOpenContactUs={() => setContactUsModalOpen(true)}
       />
 
       {/* User Instruction Manual Modal (Enterprise Fleet, Startup Core, Personal Flow) */}
       <InstructionManualModal
         isOpen={manualOpen}
-        onClose={() => setManualOpen(false)}
+        onClose={() => {
+          setManualOpen(false);
+          setManualInitialTab(undefined);
+        }}
         workspaceMode={appState.workspaceMode}
         onSelectWorkspaceMode={handleSelectWorkspaceMode}
         onOpenAiPlanner={() => setAiModalOpen(true)}
         onOpenAccessKeysModal={() => setAccessKeysModalOpen(true)}
+        onOpenContactUs={() => setContactUsModalOpen(true)}
+        initialTab={manualInitialTab}
+      />
+
+      {/* Contact Us & Community Reviews Modal */}
+      <ContactUsModal
+        isOpen={contactUsModalOpen}
+        onClose={() => setContactUsModalOpen(false)}
+        workspaceMode={appState.workspaceMode}
       />
     </div>
   );
